@@ -3,7 +3,7 @@
 #ifndef MATRIX
 #define MATRIX
 
-#include "vec3.h"
+#include "common/math/vec3.h"
 #include "maths.h"
 
 struct mat44
@@ -54,7 +54,7 @@ inline void transpose(mat44& m) noexcept
 }
 
 
-inline void set_translation(mat44& m, const vec3& t) noexcept
+inline void set_translation(mat44& m, const embree::Vec3f& t) noexcept
 {
     m[0][3] = t.x;
     m[1][3] = t.y;
@@ -62,7 +62,7 @@ inline void set_translation(mat44& m, const vec3& t) noexcept
 }
 
 
-inline void set_rotation(mat44& m, const vec3& r) noexcept
+inline void set_rotation(mat44& m, const embree::Vec3f& r) noexcept
 {
 
     // rotate x
@@ -100,7 +100,7 @@ inline void set_rotation(mat44& m, const vec3& r) noexcept
 }
 
 
-inline void set_scale(mat44& m, const vec3& s) noexcept
+inline void set_scale(mat44& m, const embree::Vec3f& s) noexcept
 {
     m[0][0] = s.x;
     m[1][1] = s.y;
@@ -108,18 +108,18 @@ inline void set_scale(mat44& m, const vec3& s) noexcept
 }
 
 
-inline vec3 transform(const vec3& v, const mat44& m) noexcept
+inline embree::Vec3f transform(const embree::Vec3f& v, const mat44& m) noexcept
 {
     float w = v.x * m[3][0] + v.y * m[3][1] + v.z * m[3][2] + m[3][3];
 
-    return vec3((v.x * m[0][0] + v.y * m[0][1] + v.z * m[0][2] + m[0][3]),
+    return embree::Vec3f((v.x * m[0][0] + v.y * m[0][1] + v.z * m[0][2] + m[0][3]),
         (v.x * m[1][0] + v.y * m[1][1] + v.z * m[1][2] + m[1][3]),
         (v.x * m[2][0] + v.y * m[2][1] + v.z * m[2][2] + m[2][3]));
 }
 
-inline vec3 transform_dir(const vec3& v, const mat44& m) noexcept
+inline embree::Vec3f transform_dir(const embree::Vec3f& v, const mat44& m) noexcept
 {
-    return vec3(v.x * m[0][0] + v.y * m[0][1] + v.z * m[0][2],
+    return embree::Vec3f(v.x * m[0][0] + v.y * m[0][1] + v.z * m[0][2],
         v.x * m[1][0] + v.y * m[1][1] + v.z * m[1][2],
         v.x * m[2][0] + v.y * m[2][1] + v.z * m[2][2]);
 }

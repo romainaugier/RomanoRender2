@@ -14,22 +14,22 @@ void Camera::Update(int& xres, int& yres) noexcept
 {
 	aspect = (float)xres / (float)yres;
 
-	vec3 u, w;
-	vec3 up(0.0f, 1.0f, 0.0f);
+	embree::Vec3f u, w;
+	embree::Vec3f up(0.0f, 1.0f, 0.0f);
 
 	fov = 2 * rad2deg(std::atan(36.0f / (2 * focal_length)));
 	scale = tan(deg2rad(fov * 0.5f));
 
 	float theta = fov * PI / 180.0f;
-	float half_height = tan(theta / 2.0f);
+	float half_height = embree::tan(theta / 2.0f);
 	float half_width = aspect * half_height;
 
 	origin = pos;
 
-	vec3 w_(pos - rotation);
-	w = normalize(w_);
-	u = normalize(cross(w, up));
-	v = cross(w, u);
+	embree::Vec3f w_(pos - rotation);
+	w = embree::normalize(w_);
+	u = embree::normalize(embree::cross(w, up));
+	v = embree::cross(w, u);
 
 	lower_left_corner = origin - u * half_width - v * half_height - w;
 	h = u * 2.0f * half_width;
@@ -46,7 +46,7 @@ void Camera::SetTransform() noexcept
 
 	transformation_matrix = translate_matrix * rotate_matrix;
 
-	posForRays = vec3(transformation_matrix[0][3], transformation_matrix[1][3], transformation_matrix[2][3]);
+	posForRays = embree::Vec3f(transformation_matrix[0][3], transformation_matrix[1][3], transformation_matrix[2][3]);
 }
 
 void Camera::SetTransformFromCam(const mat44& rotate_matrix) noexcept

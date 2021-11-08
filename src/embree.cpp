@@ -37,9 +37,9 @@ void Object::SetTransform() noexcept
 
     for (int i = 0; i < vtx_count; i++)
     {
-        vec3 temp(orig_positions[i].x, orig_positions[i].y, orig_positions[i].z);
+        embree::Vec3f temp(orig_positions[i].x, orig_positions[i].y, orig_positions[i].z);
 
-        vec3 temp2 = transform(temp, transformation_matrix);
+        embree::Vec3f temp2 = transform(temp, transformation_matrix);
 
         vertices[i].x = temp2.x;
         vertices[i].y = temp2.y;

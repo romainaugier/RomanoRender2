@@ -6,7 +6,7 @@
 
 #pragma once
 #include <stdint.h>
-#include "vec3.h"
+#include "../common/math/vec3.h"
 
 
 #ifdef __cplusplus

@@ -25,7 +25,7 @@ struct Object
 {
     mat44 transformation_matrix;
 
-    vec3 translate, scale, rotate;
+    embree::Vec3f translate, scale, rotate;
 
     std::string name;
 
@@ -49,7 +49,7 @@ struct Object
                                   0.0f, 0.0f, 1.0f, 0.0f,
                                   0.0f, 0.0f, 0.0f, 1.0f };
 
-        translate = vec3(0.0f); rotate = vec3(0.0f); scale = vec3(1.0f);
+        translate = embree::Vec3f(0.0f); rotate = embree::Vec3f(0.0f); scale = embree::Vec3f(1.0f);
     }
 
     void SetTransform() noexcept;

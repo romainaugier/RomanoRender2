@@ -13,10 +13,10 @@
 
 // Helper functions to set rays
 
-__forceinline void SetRayPosition(RTCRayHit* rayhit, const vec3& position) noexcept { rayhit->ray.org_x = position.x; rayhit->ray.org_y = position.y; rayhit->ray.org_z = position.z; }
-__forceinline void SetRayDirection(RTCRayHit* rayhit, const vec3& direction) noexcept { rayhit->ray.dir_x = direction.x; rayhit->ray.dir_y = direction.y; rayhit->ray.dir_z = direction.z; }
+__forceinline void SetRayPosition(RTCRayHit* rayhit, const embree::Vec3f& position) noexcept { rayhit->ray.org_x = position.x; rayhit->ray.org_y = position.y; rayhit->ray.org_z = position.z; }
+__forceinline void SetRayDirection(RTCRayHit* rayhit, const embree::Vec3f& direction) noexcept { rayhit->ray.dir_x = direction.x; rayhit->ray.dir_y = direction.y; rayhit->ray.dir_z = direction.z; }
 
-__forceinline void SetRay(RTCRayHit* rayhit, const vec3& position, const vec3& direction, float t) noexcept
+__forceinline void SetRay(RTCRayHit* rayhit, const embree::Vec3f& position, const embree::Vec3f& direction, float t) noexcept
 { 
 	SetRayPosition(rayhit, position); 
 	SetRayDirection(rayhit, direction); 
@@ -28,26 +28,26 @@ __forceinline void SetRay(RTCRayHit* rayhit, const vec3& position, const vec3& d
 	rayhit->hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
 }
 
-__forceinline vec3 GetRayHitPosition(RTCRayHit* rayhit) noexcept 
+__forceinline embree::Vec3f GetRayHitPosition(RTCRayHit* rayhit) noexcept 
 {	
-	return vec3(rayhit->ray.org_x + rayhit->ray.dir_x * rayhit->ray.tfar, 
+	return embree::Vec3f(rayhit->ray.org_x + rayhit->ray.dir_x * rayhit->ray.tfar, 
 				rayhit->ray.org_y + rayhit->ray.dir_y * rayhit->ray.tfar,
 				rayhit->ray.org_z + rayhit->ray.dir_z * rayhit->ray.tfar); 
 }
 
-__forceinline vec3 GetRayHitNormal(RTCRayHit* rayhit) noexcept { return vec3(rayhit->hit.Ng_x, rayhit->hit.Ng_y, rayhit->hit.Ng_z); }
+__forceinline embree::Vec3f GetRayHitNormal(RTCRayHit* rayhit) noexcept { return embree::Vec3f(rayhit->hit.Ng_x, rayhit->hit.Ng_y, rayhit->hit.Ng_z); }
 
 __forceinline void PostIntersectCleanup(RTCRayHit* rayhit) noexcept
 {
-	const vec3 hitN = GetRayHitNormal(rayhit);
-	const vec3 hitP = GetRayHitPosition(rayhit);
+	const embree::Vec3f hitN = GetRayHitNormal(rayhit);
+	const embree::Vec3f hitP = GetRayHitPosition(rayhit);
 
 	SetRay(rayhit, hitP, hitN, 10000.0f);
 }
 
-__forceinline void PostIntersectPrep(RTCRayHit* rayhit, const vec3& direction, float tnear, float tfar) noexcept
+__forceinline void PostIntersectPrep(RTCRayHit* rayhit, const embree::Vec3f& direction, float tnear, float tfar) noexcept
 {
-	const vec3 hitP = GetRayHitPosition(rayhit);
+	const embree::Vec3f hitP = GetRayHitPosition(rayhit);
 
 	SetRayPosition(rayhit, hitP);
 	SetRayDirection(rayhit, direction);
@@ -61,21 +61,21 @@ __forceinline void PostIntersectPrep(RTCRayHit* rayhit, const vec3& direction, f
 
 // Helper functions to set rays 8
 
-__forceinline void SetRay8Position(RTCRayHit8* rayhit, const vec3& position, const uint8_t index) noexcept 
+__forceinline void SetRay8Position(RTCRayHit8* rayhit, const embree::Vec3f& position, const uint8_t index) noexcept 
 {	
 	rayhit->ray.org_x[index] = position.x; 
 	rayhit->ray.org_y[index] = position.y; 
 	rayhit->ray.org_z[index] = position.z; 
 }
 
-__forceinline void SetRay8Direction(RTCRayHit8* rayhit, const vec3& direction, const uint8_t index) noexcept 
+__forceinline void SetRay8Direction(RTCRayHit8* rayhit, const embree::Vec3f& direction, const uint8_t index) noexcept 
 { 
 	rayhit->ray.dir_x[index] = direction.x; 
 	rayhit->ray.dir_y[index] = direction.y; 
 	rayhit->ray.dir_z[index] = direction.z; 
 }
 
-__forceinline void SetRay8(RTCRayHit8* rayhit, const vec3& position, const vec3& direction, float t, const uint8_t index) noexcept
+__forceinline void SetRay8(RTCRayHit8* rayhit, const embree::Vec3f& position, const embree::Vec3f& direction, float t, const uint8_t index) noexcept
 {
 	SetRay8Position(rayhit, position, index);
 	SetRay8Direction(rayhit, direction, index);
@@ -87,26 +87,26 @@ __forceinline void SetRay8(RTCRayHit8* rayhit, const vec3& position, const vec3&
 	rayhit->hit.instID[index][0] = RTC_INVALID_GEOMETRY_ID;
 }
 
-__forceinline vec3 GetRayHit8Position(RTCRayHit8* rayhit, const uint8_t index) noexcept
+__forceinline embree::Vec3f GetRayHit8Position(RTCRayHit8* rayhit, const uint8_t index) noexcept
 {
-	return vec3(rayhit->ray.org_x[index] + rayhit->ray.dir_x[index] * rayhit->ray.tfar[index],
+	return embree::Vec3f(rayhit->ray.org_x[index] + rayhit->ray.dir_x[index] * rayhit->ray.tfar[index],
 		rayhit->ray.org_y[index] + rayhit->ray.dir_y[index] * rayhit->ray.tfar[index],
 		rayhit->ray.org_z[index] + rayhit->ray.dir_z[index] * rayhit->ray.tfar[index]);
 }
 
-__forceinline vec3 GetRayHit8Normal(RTCRayHit8* rayhit, const uint8_t index) noexcept { return vec3(rayhit->hit.Ng_x[index], rayhit->hit.Ng_y[index], rayhit->hit.Ng_z[index]); }
+__forceinline embree::Vec3f GetRayHit8Normal(RTCRayHit8* rayhit, const uint8_t index) noexcept { return embree::Vec3f(rayhit->hit.Ng_x[index], rayhit->hit.Ng_y[index], rayhit->hit.Ng_z[index]); }
 
 __forceinline void PostIntersect8Cleanup(RTCRayHit8* rayhit, const uint8_t index) noexcept
 {
-	const vec3 hitN = GetRayHit8Normal(rayhit, index);
-	const vec3 hitP = GetRayHit8Position(rayhit, index);
+	const embree::Vec3f hitN = GetRayHit8Normal(rayhit, index);
+	const embree::Vec3f hitP = GetRayHit8Position(rayhit, index);
 
 	SetRay8(rayhit, hitP, hitN, 10000.0f, index);
 }
 
-__forceinline void PostIntersect8Prep(RTCRayHit8* rayhit, const vec3& direction, float tnear, float tfar, const uint8_t index) noexcept
+__forceinline void PostIntersect8Prep(RTCRayHit8* rayhit, const embree::Vec3f& direction, float tnear, float tfar, const uint8_t index) noexcept
 {
-	const vec3 hitP = GetRayHit8Position(rayhit, index);
+	const embree::Vec3f hitP = GetRayHit8Position(rayhit, index);
 
 	SetRay8Position(rayhit, hitP, index);
 	SetRay8Direction(rayhit, direction, index);
@@ -180,21 +180,21 @@ __forceinline void FreeRayhitNp(RTCRayHitNp& tmp)
 	_aligned_free(tmp.hit.instID[0]);
 }
 
-__forceinline void SetRayNPosition(RTCRayHitNp rayhit, const vec3& position, const uint8_t index) noexcept
+__forceinline void SetRayNPosition(RTCRayHitNp rayhit, const embree::Vec3f& position, const uint8_t index) noexcept
 {
 	rayhit.ray.org_x[index] = position.x;
 	rayhit.ray.org_y[index] = position.y;
 	rayhit.ray.org_z[index] = position.z;
 }
 
-__forceinline void SetRayNDirection(RTCRayHitNp rayhit, const vec3& direction, const uint8_t index) noexcept
+__forceinline void SetRayNDirection(RTCRayHitNp rayhit, const embree::Vec3f& direction, const uint8_t index) noexcept
 {
 	rayhit.ray.dir_x[index] = direction.x;
 	rayhit.ray.dir_y[index] = direction.y;
 	rayhit.ray.dir_z[index] = direction.z;
 }
 
-__forceinline void SetRayN(RTCRayHitNp rayhit, const vec3& position, const vec3& direction, float t, const uint8_t index) noexcept
+__forceinline void SetRayN(RTCRayHitNp rayhit, const embree::Vec3f& position, const embree::Vec3f& direction, float t, const uint8_t index) noexcept
 {
 	SetRayNPosition(rayhit, position, index);
 	SetRayNDirection(rayhit, direction, index);
@@ -206,26 +206,26 @@ __forceinline void SetRayN(RTCRayHitNp rayhit, const vec3& position, const vec3&
 	rayhit.hit.instID[0][index] = RTC_INVALID_GEOMETRY_ID;
 }
 
-__forceinline vec3 GetRayHitNPosition(RTCRayHitNp rayhit, const uint8_t index) noexcept
+__forceinline embree::Vec3f GetRayHitNPosition(RTCRayHitNp rayhit, const uint8_t index) noexcept
 {
-	return vec3(rayhit.ray.org_x[index] + rayhit.ray.dir_x[index] * rayhit.ray.tfar[index],
+	return embree::Vec3f(rayhit.ray.org_x[index] + rayhit.ray.dir_x[index] * rayhit.ray.tfar[index],
 		rayhit.ray.org_y[index] + rayhit.ray.dir_y[index] * rayhit.ray.tfar[index],
 		rayhit.ray.org_z[index] + rayhit.ray.dir_z[index] * rayhit.ray.tfar[index]);
 }
 
-__forceinline vec3 GetRayHitNNormal(RTCRayHitNp rayhit, const uint8_t index) noexcept { return vec3(rayhit.hit.Ng_x[index], rayhit.hit.Ng_y[index], rayhit.hit.Ng_z[index]); }
+__forceinline embree::Vec3f GetRayHitNNormal(RTCRayHitNp rayhit, const uint8_t index) noexcept { return embree::Vec3f(rayhit.hit.Ng_x[index], rayhit.hit.Ng_y[index], rayhit.hit.Ng_z[index]); }
 
 __forceinline void PostIntersect8Cleanup(RTCRayHitNp rayhit, const uint8_t index) noexcept
 {
-	const vec3 hitN = GetRayHitNNormal(rayhit, index);
-	const vec3 hitP = GetRayHitNPosition(rayhit, index);
+	const embree::Vec3f hitN = GetRayHitNNormal(rayhit, index);
+	const embree::Vec3f hitP = GetRayHitNPosition(rayhit, index);
 
 	SetRayN(rayhit, hitP, hitN, 10000.0f, index);
 }
 
-__forceinline void PostIntersectNPrep(RTCRayHitNp rayhit, const vec3& direction, float tnear, float tfar, const uint8_t index) noexcept
+__forceinline void PostIntersectNPrep(RTCRayHitNp rayhit, const embree::Vec3f& direction, float tnear, float tfar, const uint8_t index) noexcept
 {
-	const vec3 hitP = GetRayHitNPosition(rayhit, index);
+	const embree::Vec3f hitP = GetRayHitNPosition(rayhit, index);
 
 	SetRayNPosition(rayhit, hitP, index);
 	SetRayNDirection(rayhit, direction, index);

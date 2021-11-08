@@ -67,42 +67,67 @@ void TilesToBuffer(color* __restrict buffer,
                    const Tiles& tiles,
                    const Settings& settings) noexcept
 {
-    for (auto& tile : tiles.tiles)
+    for (int globY = 0; globY < settings.yres; globY++)
     {
-        for (int y = 0; y < tile.size_y; y++)
+        for (auto& tile : tiles.tiles)
         {
+            if (globY < tile.y_start || globY >= tile.y_end) continue;
+
             for (int x = 0; x < tile.size_x; x++)
             {
-                buffer[tile.x_start + x + (tile.y_start + y) * settings.xres].R += tile.pixels[x + y * tile.size_x].R;
-                buffer[tile.x_start + x + (tile.y_start + y) * settings.xres].G += tile.pixels[x + y * tile.size_x].G;
-                buffer[tile.x_start + x + (tile.y_start + y) * settings.xres].B += tile.pixels[x + y * tile.size_x].B;
+                buffer[tile.x_start + x + (globY) * settings.xres].R += tile.pixels[x + (globY - tile.y_start) * tile.size_x].R;
+                buffer[tile.x_start + x + (globY) * settings.xres].G += tile.pixels[x + (globY - tile.y_start) * tile.size_x].G;
+                buffer[tile.x_start + x + (globY) * settings.xres].B += tile.pixels[x + (globY - tile.y_start) * tile.size_x].B;
             }
         }
     }
+
+    //for (auto& tile : tiles.tiles)
+    //{
+    //    for (int y = 0; y < tile.size_y; y++)
+    //    {
+    //        for (int x = 0; x < tile.size_x; x++)
+    //        {
+    //            buffer[tile.x_start + x + (tile.y_start + y) * settings.xres].R += tile.pixels[x + y * tile.size_x].R;
+    //            buffer[tile.x_start + x + (tile.y_start + y) * settings.xres].G += tile.pixels[x + y * tile.size_x].G;
+    //            buffer[tile.x_start + x + (tile.y_start + y) * settings.xres].B += tile.pixels[x + y * tile.size_x].B;
+    //        }
+    //    }
+    //}
 }
 
-void SetTilePixel(Tile& tile, const vec3& color, uint32_t x, uint32_t y) noexcept
+void SetTilePixel(Tile& tile, const embree::Vec3f& color, uint32_t x, uint32_t y) noexcept
 {
     tile.pixels[(x - tile.x_start) + (y - tile.y_start) * tile.size_y].R = color.x;
     tile.pixels[(x - tile.x_start) + (y - tile.y_start) * tile.size_y].G = color.y;
     tile.pixels[(x - tile.x_start) + (y - tile.y_start) * tile.size_y].B = color.z;
 }
 
-void Render(const RTCScene& embreeScene, 
-            const uint64_t& sample,
-            const Tiles& tiles, 
-            const Camera& cam, 
-            const Settings& settings) noexcept
+void RenderBuckets(const RTCScene& embreeScene, 
+                   const uint64_t& sample,
+                   const Tiles& tiles, 
+                   const Camera& cam, 
+                   const Settings& settings) noexcept
 {
-    
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, tiles.count, 25), [&](const tbb::blocked_range<size_t>& r)
+    static tbb::affinity_partitioner partitioner;
+
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, tiles.count), [&](const tbb::blocked_range<size_t>& r)
         {
             for (size_t t = r.begin(), t_end = r.end(); t < t_end; t++)
             {
                 RenderTile(embreeScene, sample, tiles.tiles[t], cam, settings);
             }
 
-        }, tbb::simple_partitioner());
+        }, partitioner);
+}
+
+void RenderProgressive(const RTCScene& embreeScene,
+                       const uint64_t& sample,
+                       color* __restrict buffer,
+                       const Camera& cam,
+                       const Settings& settings) noexcept
+{
+
 }
 
 void RenderTile(const RTCScene& embreeScene,
@@ -183,7 +208,7 @@ void RenderTile(const RTCScene& embreeScene,
     context.flags = RTC_INTERSECT_CONTEXT_FLAG_COHERENT;
     rtcInitIntersectContext(&context);
 
-    //rtcIntersectNp(embreeScene, &context, &tile.rays, 256);
+    rtcIntersectNp(embreeScene, &context, &tile.rays, 256);
 
     /*ispc::generateDiffuseRays(tile.rays, tile.randoms, 256);
 
@@ -192,13 +217,13 @@ void RenderTile(const RTCScene& embreeScene,
     idx = 0;
 
     // Render pixel
- /*   for (int y = tile.y_start; y < tile.y_end; y++)
+    for (int y = tile.y_start; y < tile.y_end; y++)
     {
         for (int x = tile.x_start; x < tile.x_end; x++)
         {
             if (tile.rays.hit.geomID[idx] != RTC_INVALID_GEOMETRY_ID)
             {
-                vec3 output = (normalize(vec3(tile.rays.hit.Ng_x[idx], tile.rays.hit.Ng_y[idx], tile.rays.hit.Ng_z[idx])) + 0.5f) / 2.0f;
+                embree::Vec3f output = (normalize(embree::Vec3f(tile.rays.hit.Ng_x[idx], tile.rays.hit.Ng_y[idx], tile.rays.hit.Ng_z[idx])) + embree::Vec3f(0.5f)) / 2.0f;
 
                 tile.pixels[(x - tile.x_start) + (y - tile.y_start) * tile.size_y].R = output.x;
                 tile.pixels[(x - tile.x_start) + (y - tile.y_start) * tile.size_y].G = output.y;
@@ -213,21 +238,21 @@ void RenderTile(const RTCScene& embreeScene,
 
             idx++;
         }
-    }*/
-
-    RTCRayHit tmpRayHit;
-
-    for (int y = tile.y_start; y < tile.y_end; y++)
-    {
-        for (int x = tile.x_start; x < tile.x_end; x++)
-        {
-            SetRay(&tmpRayHit, vec3(tile.rays.ray.org_x[idx], tile.rays.ray.org_y[idx], tile.rays.ray.org_z[idx]), vec3(tile.rays.ray.dir_x[idx], tile.rays.ray.dir_y[idx], tile.rays.ray.dir_z[idx]), 10000.0f);
-            
-            RenderTilePixel(embreeScene, sample, x, y, tile, tmpRayHit, cam, settings);
-
-            idx++;
-        }
     }
+
+    //RTCRayHit tmpRayHit;
+
+    //for (int y = tile.y_start; y < tile.y_end; y++)
+    //{
+    //    for (int x = tile.x_start; x < tile.x_end; x++)
+    //    {
+    //        SetRay(&tmpRayHit, embree::Vec3f(tile.rays.ray.org_x[idx], tile.rays.ray.org_y[idx], tile.rays.ray.org_z[idx]), embree::Vec3f(tile.rays.ray.dir_x[idx], tile.rays.ray.dir_y[idx], tile.rays.ray.dir_z[idx]), 10000.0f);
+    //        
+    //        RenderTilePixel(embreeScene, sample, x, y, tile, tmpRayHit, cam, settings, context);
+
+    //        idx++;
+    //    }
+    //}
 }
 
 void RenderTilePixel(const RTCScene& embreeScene,
@@ -237,40 +262,26 @@ void RenderTilePixel(const RTCScene& embreeScene,
                      const Tile& tile,
                      RTCRayHit& rayhit,
                      const Camera& cam,
-                     const Settings& settings) noexcept
+                     const Settings& settings,
+                     RTCIntersectContext& context) noexcept
 {
-    const vec3 output = Pathtrace(embreeScene, seed * 9483 * x * y, rayhit);
+    const embree::Vec3f output = Pathtrace(embreeScene, seed * 9483 * x * y, rayhit, context);
 
     constexpr float gamma = 1.0f / 2.2f;
 
-    tile.pixels[(x - tile.x_start) + (y - tile.y_start) * tile.size_y].R = pow(output.x, gamma);
-    tile.pixels[(x - tile.x_start) + (y - tile.y_start) * tile.size_y].G = pow(output.y, gamma);
-    tile.pixels[(x - tile.x_start) + (y - tile.y_start) * tile.size_y].B = pow(output.z, gamma);
-
-    if (_isnan(output.x) || _isnan(output.y) || _isnan(output.z))
-    {
-        tile.pixels[(x - tile.x_start) + (y - tile.y_start) * tile.size_y].R = 0.5f;
-        tile.pixels[(x - tile.x_start) + (y - tile.y_start) * tile.size_y].B = 0.5f;
-        tile.pixels[(x - tile.x_start) + (y - tile.y_start) * tile.size_y].G = 0.5f;
-    }
-    else
-    {
-        tile.pixels[(x - tile.x_start) + (y - tile.y_start) * tile.size_y].R = pow(output.x, gamma);
-        tile.pixels[(x - tile.x_start) + (y - tile.y_start) * tile.size_y].G = pow(output.y, gamma);
-        tile.pixels[(x - tile.x_start) + (y - tile.y_start) * tile.size_y].B = pow(output.z, gamma);
-    }
+    tile.pixels[(x - tile.x_start) + (y - tile.y_start) * tile.size_y].R = output.x;
+    tile.pixels[(x - tile.x_start) + (y - tile.y_start) * tile.size_y].G = output.y;
+    tile.pixels[(x - tile.x_start) + (y - tile.y_start) * tile.size_y].B = output.z;
 }
 
-vec3 Pathtrace(const RTCScene& embreeScene,
+embree::Vec3f Pathtrace(const RTCScene& embreeScene,
                const uint32_t seed, 
-               RTCRayHit& rayhit) noexcept
+               RTCRayHit& rayhit,
+               RTCIntersectContext& context) noexcept
 {
-    vec3 output = vec3(0.0f);
-    vec3 tmp = vec3(1.0f);
+    embree::Vec3f output = embree::Vec3f(0.0f);
+    embree::Vec3f tmp = embree::Vec3f(1.0f);
 
-    RTCIntersectContext context;
-    rtcInitIntersectContext(&context);
-    
     float randoms[4];
 
     constexpr unsigned int floatAddr = 0x2f800004u;
@@ -282,79 +293,80 @@ vec3 Pathtrace(const RTCScene& embreeScene,
     //if (Intersect(accelerator, rayhit))
     if (rayhit.hit.geomID != RTC_INVALID_GEOMETRY_ID)
     {
-        vec3 hitPosition = vec3(rayhit.ray.org_x, rayhit.ray.org_y, rayhit.ray.org_z) + rayhit.ray.tfar * vec3(rayhit.ray.dir_x, rayhit.ray.dir_y, rayhit.ray.dir_z);
-        vec3 hitNormal = normalize(vec3(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z));
+        embree::Vec3f hitPosition = embree::Vec3f(rayhit.ray.org_x, rayhit.ray.org_y, rayhit.ray.org_z) + rayhit.ray.tfar * embree::Vec3f(rayhit.ray.dir_x, rayhit.ray.dir_y, rayhit.ray.dir_z);
+        embree::Vec3f hitNormal = embree::normalize(embree::Vec3f(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z));
+
+        output = hitNormal;
 
         // output = (hitNormal + 0.5f) / 2.0f;
 
-        uint32_t hitId = rayhit.hit.geomID;
+    //    uint32_t hitId = rayhit.hit.geomID;
 
-        uint8_t bounce = 0;
+    //    uint8_t bounce = 0;
 
-        while (true)
-        {
-            if (bounce > 6)
-            {
-                break;
-            }
+    //    while (true)
+    //    {
+    //        if (bounce > 1)
+    //        {
+    //            break;
+    //        }
 
-            int seeds[4] = { seed + bounce + 422, seed + bounce + 4332, seed + bounce + 938, seed + bounce + 2345 };
+    //        int seeds[4] = { seed + bounce + 422, seed + bounce + 4332, seed + bounce + 938, seed + bounce + 2345 };
 
-            ispc::randomFloatWangHash(seeds, randoms, toFloat, 4);
+    //        ispc::randomFloatWangHash(seeds, randoms, toFloat, 4);
 
-            // Sample Light
-            RTCRay shadow;
-            
-            vec3 rayOrig = hitPosition + hitNormal * 0.001f;
-            vec3 rayDir = sample_ray_in_hemisphere(hitNormal, randoms);
-            
-            shadow.org_x = rayOrig.x;
-            shadow.org_y = rayOrig.y;
-            shadow.org_z = rayOrig.z;
-            
-            shadow.dir_x = rayDir.x;
-            shadow.dir_y = rayDir.y;
-            shadow.dir_z = rayDir.z;
+    //        // Sample Light
+    //        RTCRay shadow;
+    //        
+    //        embree::Vec3f rayOrig = hitPosition + hitNormal * 0.001f;
+    //        embree::Vec3f rayDir = sample_ray_in_hemisphere(hitNormal, randoms);
+    //        
+    //        shadow.org_x = rayOrig.x;
+    //        shadow.org_y = rayOrig.y;
+    //        shadow.org_z = rayOrig.z;
+    //        
+    //        shadow.dir_x = rayDir.x;
+    //        shadow.dir_y = rayDir.y;
+    //        shadow.dir_z = rayDir.z;
 
-            shadow.tnear = 0.0001f;
-            shadow.tfar = 100000.0f;
-            shadow.mask = -1;
-            shadow.flags = 0;
+    //        shadow.tnear = 0.0001f;
+    //        shadow.tfar = 100000.0f;
+    //        shadow.mask = -1;
+    //        shadow.flags = 0;
 
-            rtcOccluded1(embreeScene, &context, &shadow);
+    //        rtcOccluded1(embreeScene, &context, &shadow);
 
-            
-            if (!std::isinf(shadow.tfar))
-            {
-                output += tmp * max(0.0f, dot(rayDir, hitNormal)) * INVPI;
-            }
+    //        
+    //        if (embree::finite(shadow.tfar))
+    //        {
+    //            output += tmp * embree::max(0.0f, dot(rayDir, hitNormal)) * INVPI;
+    //        }
 
-            tmp *= 0.75f;
+    //        tmp *= 0.75f;
 
-            float rr = min(0.95f, (0.2126 * tmp.x + 0.7152 * tmp.y + 0.0722 * tmp.z));
-            if (rr < randoms[3]) break;
-            else tmp /= rr;
+    //        float rr = embree::min(0.95f, (0.2126f * tmp.x + 0.7152f * tmp.y + 0.0722f * tmp.z));
+    //        if (rr < randoms[3]) break;
+    //        else tmp /= rr;
 
-            SetRay(&rayhit, hitPosition, sample_ray_in_hemisphere(hitNormal, &randoms[2]), 10000.0f);
+    //        SetRay(&rayhit, hitPosition, sample_ray_in_hemisphere(hitNormal, &randoms[2]), 10000.0f);
 
-            rtcIntersect1(embreeScene, &context, &rayhit);
+    //        rtcIntersect1(embreeScene, &context, &rayhit);
 
-            if (rayhit.hit.geomID == RTC_INVALID_GEOMETRY_ID)
-            {
-                break;
-            }
+    //        if (rayhit.hit.geomID == RTC_INVALID_GEOMETRY_ID)
+    //        {
+    //            break;
+    //        }
 
-            hitPosition = vec3(rayhit.ray.org_x, rayhit.ray.org_y, rayhit.ray.org_z) + rayhit.ray.tfar * vec3(rayhit.ray.dir_x, rayhit.ray.dir_y, rayhit.ray.dir_z);
-            hitNormal = normalize(vec3(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z));
-            hitId = rayhit.hit.geomID;
+    //        hitPosition = embree::Vec3f(rayhit.ray.org_x, rayhit.ray.org_y, rayhit.ray.org_z) + rayhit.ray.tfar * embree::Vec3f(rayhit.ray.dir_x, rayhit.ray.dir_y, rayhit.ray.dir_z);
+    //        hitNormal = embree::normalize(embree::Vec3f(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z));
+    //        hitId = rayhit.hit.geomID;
 
-            bounce++;
-        }
+    //        bounce++;
+    //    }
     }
     else
     {
-        output = lerp(vec3(0.3f, 0.5f, 0.7f), vec3(1.0f), fit(rayhit.ray.dir_y, -1.0f, 1.0f, 0.0f, 1.0f));
-        // output = vec3(0.0f);
+        output = embree::lerp(embree::Vec3f(0.3f, 0.5f, 0.7f), embree::Vec3f(1.0f), fit(rayhit.ray.dir_y, -1.0f, 1.0f, 0.0f, 1.0f));
     }
 
     return output;

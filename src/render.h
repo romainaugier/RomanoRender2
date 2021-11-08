@@ -3,14 +3,15 @@
 #ifndef RENDER
 #define RENDER
 
-#include "bvh.h"
 #include "mat44.h"
 #include "camera.h"
 #include "material.h"
 #include "settings.h"
 #include "GL/glew.h"
 #include "ispc/rand.h"
+#include "ispc/ray_generation.h"
 #include "embree3/rtcore.h"
+#include "tbb/tbb.h"
 
 #include <vector>
 #include <iostream>
@@ -47,13 +48,19 @@ void TilesToBuffer(color* __restrict buffer,
 				   const Tiles& tiles,
 	               const Settings& settings) noexcept;
 
-void SetTilePixel(Tile& tile, const vec3& color, uint32_t x, uint32_t y) noexcept;
+void SetTilePixel(Tile& tile, const embree::Vec3f& color, uint32_t x, uint32_t y) noexcept;
 
-void Render(const RTCScene& embreeScene,
+void RenderBuckets(const RTCScene& embreeScene,
 			const uint64_t& sample, 
 			const Tiles& tiles, 
 			const Camera& cam, 
 			const Settings& settings) noexcept;
+
+void RenderProgressive(const RTCScene& embreeScene,
+					   const uint64_t& sample,
+					   color* __restrict buffer,
+					   const Camera& cam,
+					   const Settings& settings) noexcept;
 
 void RenderTile(const RTCScene& embreeScene,
 				const uint64_t& sample,
@@ -68,28 +75,13 @@ void RenderTilePixel(const RTCScene& embreeScene,
 				     const Tile& tile,
 					 RTCRayHit& rayhit,
 					 const Camera& cam,
-					 const Settings& settings) noexcept;
+					 const Settings& settings,
+					 RTCIntersectContext& context) noexcept;
 
-void RenderTilePixel8(const uint64_t& seed,
-					  const uint16_t* x,
-					  const uint16_t* y,
-				      const Tile& tile,
-					  const Accelerator& accelerator,
-					  const Camera& cam,
-					  const Settings& settings) noexcept;
-
-
-void RenderPixel(const uint64_t& seed, 
-				 const uint16_t x, 
-				 const uint16_t y, 
-				 const Accelerator& accelerator, 
-				 color* __restrict buffer, 
-				 const Camera& cam, 
-				 const Settings& settings) noexcept;
-
-vec3 Pathtrace(const RTCScene& embreeScene,
+embree::Vec3f Pathtrace(const RTCScene& embreeScene,
 			   const uint32_t seed,
-			   RTCRayHit& rayhit) noexcept;
+			   RTCRayHit& rayhit,
+			   RTCIntersectContext& context) noexcept;
 
 #endif // !RENDER
 

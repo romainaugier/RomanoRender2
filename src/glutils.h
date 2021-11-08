@@ -4,7 +4,6 @@
 #define GLUTILS
 
 #include "GL/glew.h"
-#include "boundingbox.h"
 
 class Shader
 {
@@ -91,45 +90,45 @@ public:
 	}
 };
 
-static void DrawBoundingBox(const BoundingBox& bbox, const vec3& color) noexcept
-{
-	glColor3f(color.x, color.y, color.z);
-
-	// +Y face
-	glVertex3f(bbox.p0.x, bbox.p1.y, bbox.p0.z);
-	glVertex3f(bbox.p1.x, bbox.p1.y, bbox.p0.z);
-	glVertex3f(bbox.p1.x, bbox.p1.y, bbox.p1.z);
-	glVertex3f(bbox.p0.x, bbox.p1.y, bbox.p1.z);
-
-	// +Z face
-	glVertex3f(bbox.p0.x, bbox.p1.y, bbox.p1.z);
-	glVertex3f(bbox.p1.x, bbox.p1.y, bbox.p1.z);
-	glVertex3f(bbox.p1.x, bbox.p0.y, bbox.p1.z);
-	glVertex3f(bbox.p0.x, bbox.p0.y, bbox.p1.z);
-
-	// +X face
-	glVertex3f(bbox.p1.x, bbox.p1.y, bbox.p1.z);
-	glVertex3f(bbox.p1.x, bbox.p0.y, bbox.p1.z);
-	glVertex3f(bbox.p1.x, bbox.p0.y, bbox.p0.z);
-	glVertex3f(bbox.p1.x, bbox.p0.y, bbox.p1.z);
-
-	// -Y face
-	glVertex3f(bbox.p0.x, bbox.p0.y, bbox.p0.z);
-	glVertex3f(bbox.p1.x, bbox.p0.y, bbox.p0.z);
-	glVertex3f(bbox.p1.x, bbox.p0.y, bbox.p1.z);
-	glVertex3f(bbox.p0.x, bbox.p0.y, bbox.p1.z);
-
-	// -Z face
-	glVertex3f(bbox.p0.x, bbox.p1.y, bbox.p0.z);
-	glVertex3f(bbox.p1.x, bbox.p1.y, bbox.p0.z);
-	glVertex3f(bbox.p1.x, bbox.p0.y, bbox.p0.z);
-	glVertex3f(bbox.p0.x, bbox.p0.y, bbox.p0.z);
-
-	// -X face
-	glVertex3f(bbox.p0.x, bbox.p1.y, bbox.p1.z);
-	glVertex3f(bbox.p0.x, bbox.p0.y, bbox.p1.z);
-	glVertex3f(bbox.p0.x, bbox.p0.y, bbox.p0.z);
-	glVertex3f(bbox.p0.x, bbox.p0.y, bbox.p1.z);
-}
+//static void DrawBoundingBox(const BoundingBox& bbox, const vec3& color) noexcept
+//{
+//	glColor3f(color.x, color.y, color.z);
+//
+//	// +Y face
+//	glVertex3f(bbox.p0.x, bbox.p1.y, bbox.p0.z);
+//	glVertex3f(bbox.p1.x, bbox.p1.y, bbox.p0.z);
+//	glVertex3f(bbox.p1.x, bbox.p1.y, bbox.p1.z);
+//	glVertex3f(bbox.p0.x, bbox.p1.y, bbox.p1.z);
+//
+//	// +Z face
+//	glVertex3f(bbox.p0.x, bbox.p1.y, bbox.p1.z);
+//	glVertex3f(bbox.p1.x, bbox.p1.y, bbox.p1.z);
+//	glVertex3f(bbox.p1.x, bbox.p0.y, bbox.p1.z);
+//	glVertex3f(bbox.p0.x, bbox.p0.y, bbox.p1.z);
+//
+//	// +X face
+//	glVertex3f(bbox.p1.x, bbox.p1.y, bbox.p1.z);
+//	glVertex3f(bbox.p1.x, bbox.p0.y, bbox.p1.z);
+//	glVertex3f(bbox.p1.x, bbox.p0.y, bbox.p0.z);
+//	glVertex3f(bbox.p1.x, bbox.p0.y, bbox.p1.z);
+//
+//	// -Y face
+//	glVertex3f(bbox.p0.x, bbox.p0.y, bbox.p0.z);
+//	glVertex3f(bbox.p1.x, bbox.p0.y, bbox.p0.z);
+//	glVertex3f(bbox.p1.x, bbox.p0.y, bbox.p1.z);
+//	glVertex3f(bbox.p0.x, bbox.p0.y, bbox.p1.z);
+//
+//	// -Z face
+//	glVertex3f(bbox.p0.x, bbox.p1.y, bbox.p0.z);
+//	glVertex3f(bbox.p1.x, bbox.p1.y, bbox.p0.z);
+//	glVertex3f(bbox.p1.x, bbox.p0.y, bbox.p0.z);
+//	glVertex3f(bbox.p0.x, bbox.p0.y, bbox.p0.z);
+//
+//	// -X face
+//	glVertex3f(bbox.p0.x, bbox.p1.y, bbox.p1.z);
+//	glVertex3f(bbox.p0.x, bbox.p0.y, bbox.p1.z);
+//	glVertex3f(bbox.p0.x, bbox.p0.y, bbox.p0.z);
+//	glVertex3f(bbox.p0.x, bbox.p0.y, bbox.p1.z);
+//}
 
 #endif // !GLUTILS

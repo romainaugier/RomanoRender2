@@ -90,7 +90,7 @@ int application(int argc, char** argv)
     ImVec4 clear_color = ImVec4(0.06f, 0.05f, 0.04f, 0.00f);
 
 
-    Camera cam(vec3(0.0f, 30.0f, 100.0f), vec3(0.0f, 0.0f, 0.0f), 50, xres, yres);
+    Camera cam(embree::Vec3f(0.0f, 30.0f, 100.0f), embree::Vec3f(0.0f, 0.0f, 0.0f), 50, xres, yres);
     cam.SetTransform();
 
     Settings settings;
@@ -139,6 +139,7 @@ int application(int argc, char** argv)
     bool edited = 0;
     bool render = false;
     static bool drawBvh = false;
+    static bool doTiles = true;
     float elapsedBvh = 0.0f;
     elapsed = 0.0f;
     float renderSeconds = 0.0f;
@@ -190,7 +191,7 @@ int application(int argc, char** argv)
             GetAsyncKeyState(VK_SPACE), GetAsyncKeyState(VK_LCONTROL),
             0);
 
-        cam.pos = vec3(pos[0], pos[1], pos[2]);
+        cam.pos = embree::Vec3f(pos[0], pos[1], pos[2]);
 
         cam.SetTransformFromCam(mat44(view[0], view[1], view[2], view[3],
             view[4], view[5], view[6], view[7],
@@ -216,11 +217,10 @@ int application(int argc, char** argv)
 
         if(render)
         {
-            auto start = get_time();
 
             Render(embreeScene, ImGui::GetFrameCount(), tiles, cam, settings);
-            TilesToBuffer(accumBuffer, tiles, settings);
-
+            auto start = get_time();
+            if(doTiles) TilesToBuffer(accumBuffer, tiles, settings);
 
             for (uint32_t y = 0; y < yres; y++)
             {
@@ -235,6 +235,7 @@ int application(int argc, char** argv)
             auto end = get_time();
 
             elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
             renderSeconds += elapsed;
 
             glBindTexture(GL_TEXTURE_2D, render_view_texture);
@@ -263,6 +264,11 @@ int application(int argc, char** argv)
             {
                 if (render) render = false;
                 else render = true;
+            }
+            if (ImGui::Button("Tiles"))
+            {
+                if (doTiles) doTiles = false;
+                else doTiles = true;
             }
 
             ImGui::End();
