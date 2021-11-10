@@ -23,7 +23,7 @@ varying struct vec3 operator-(varying struct vec3 a, varying float b) { varying 
 
 static inline uniform vec3 normalize(uniform vec3 v)
 {
-	uniform float t = 1.0f / sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+	uniform float t = rsqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 	v.x *= t;
 	v.y *= t;
 	v.z *= t;
@@ -32,7 +32,7 @@ static inline uniform vec3 normalize(uniform vec3 v)
 
 static inline varying vec3 normalize(varying vec3 v)
 {
-	varying float t = 1.0f / sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+	varying float t = rsqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 	v.x *= t;
 	v.y *= t;
 	v.z *= t;
@@ -153,12 +153,12 @@ static inline void sampleLambert(uniform float hitNormalX[],
 	}
 }
 
-export void generate2dXY(uniform float randoms[], 
-						 const uniform float x, const uniform float y,
-						 uniform float xres, uniform float yres,
-						 uniform float camAspect, uniform float camScale,
-						 uniform float xOut[], uniform float yOut[], uniform float zOut[],
-						 uniform int count)
+export void generate2dXYTiles(uniform float randoms[],
+	const uniform float x, const uniform float y,
+	uniform float xres, uniform float yres,
+	uniform float camAspect, uniform float camScale,
+	uniform float xOut[], uniform float yOut[], uniform float zOut[],
+	uniform int count)
 {
 	foreach(index = 0 ... count)
 	{
@@ -172,6 +172,32 @@ export void generate2dXY(uniform float randoms[],
 		const float dy = lerp(-0.5, 0.5, rand2);
 
 		float x_ = x + index;
+
+		xOut[index] = (2.0 * (x_ + dx) / xres - 1.0) * camAspect * camScale;
+		yOut[index] = (1.0 - 2.0 * (y + dy) / yres) * camScale;
+	}
+}
+
+export void generate2dXY(uniform float randoms[], 
+						 const uniform int x,
+						 const uniform int xres, const uniform int yres,
+						 const uniform float camAspect, const uniform float camScale,
+						 uniform float xOut[], uniform float yOut[], uniform float zOut[],
+						 const uniform int count)
+{
+	foreach(index = 0 ... count)
+	{
+		const float rand1 = randoms[index];
+		const float rand2 = randoms[index + 1];
+
+		// const float dx = sqrt(-0.5 * log(rand1)) * cos(2.0 * PI * rand2);
+		// const float dy = sqrt(-0.5 * log(rand1)) * sin(2.0 * PI * rand2);
+
+		const float dx = lerp(-0.5, 0.5, rand1);
+		const float dy = lerp(-0.5, 0.5, rand2);
+
+		int x_ = (x + index) % xres;
+		int y = (x + index) / xres;
 
 		xOut[index] = (2.0 * (x_ + dx) / xres - 1.0) * camAspect * camScale;
 		yOut[index] = (1.0 - 2.0 * (y + dy) / yres) * camScale;

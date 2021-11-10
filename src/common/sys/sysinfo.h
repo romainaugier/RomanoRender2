@@ -14,6 +14,8 @@
 
 #include "platform.h"
 
+#define __AVX2__
+
 /* define isa namespace and ISA bitvector */
 #if defined (__AVX512VL__)
 #  define isa avx512

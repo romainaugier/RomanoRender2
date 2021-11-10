@@ -6,6 +6,7 @@
 #include "mat44.h"
 #include "maths.h"
 #include "ray.h"
+#include "ispc/ray_generation.h"
 
 struct Camera
 {
@@ -17,6 +18,7 @@ struct Camera
 	embree::Vec3f rotation;
 
 	mat44 transformation_matrix;
+	ispc::mat44 ispcTransformMatrix;
 
 	float focal_length;
 	float fov;

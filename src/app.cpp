@@ -26,7 +26,7 @@ int application(int argc, char** argv)
     _MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_ON);
 
     // Setup embree scene
-    std::string path = "D:/dev/Utils/Models/scene_drag.obj";
+    std::string path = "D:/dev/Utils/Models/kitchen_scene.obj";
     
     RTCDevice embreeDevice = initializeDevice();
     RTCScene embreeScene = rtcNewScene(embreeDevice);
@@ -35,9 +35,17 @@ int application(int argc, char** argv)
     rtcSetSceneFlags(embreeScene, RTC_SCENE_FLAG_ROBUST);
 
     std::vector<Object> objects;
+    
+    auto start = get_time();
 
     LoadObject(embreeDevice, path, objects);
     BuildScene(embreeDevice, embreeScene, objects);
+
+    auto end = get_time();
+
+    float elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    printf("Acceleration structure building time : %0.3f ms\n", elapsed);
 
     // Setup window
     glfwSetErrorCallback(glfw_error_callback);
@@ -90,21 +98,13 @@ int application(int argc, char** argv)
     ImVec4 clear_color = ImVec4(0.06f, 0.05f, 0.04f, 0.00f);
 
 
-    Camera cam(embree::Vec3f(0.0f, 30.0f, 100.0f), embree::Vec3f(0.0f, 0.0f, 0.0f), 50, xres, yres);
+    Camera cam(embree::Vec3f(0.0f, 30.0f, 100.0f), embree::Vec3f(0.0f, 0.0f, 0.0f), 85, xres, yres);
     cam.SetTransform();
 
     Settings settings;
     settings.xres = xres;
     settings.yres = yres;
 
-    auto start = get_time();
-
-
-    auto end = get_time();
-
-    float elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
-    printf("Acceleration structure building time : %0.3f ms\n", elapsed);
 
     color* accumBuffer = new color[xres * yres];
     color* renderBuffer = new color[xres * yres];
@@ -112,6 +112,9 @@ int application(int argc, char** argv)
     Tiles tiles;
     GenerateTiles(tiles, settings);
     TilesToBuffer(renderBuffer, tiles, settings);
+
+    PixelBatches batches;
+    GeneratePixelBatches(batches, settings);
     
     GLuint render_view_texture;
 
@@ -217,10 +220,17 @@ int application(int argc, char** argv)
 
         if(render)
         {
-
-            Render(embreeScene, ImGui::GetFrameCount(), tiles, cam, settings);
             auto start = get_time();
-            if(doTiles) TilesToBuffer(accumBuffer, tiles, settings);
+
+            if (doTiles)
+            {
+                RenderTiles(embreeScene, ImGui::GetFrameCount(), tiles, cam, settings);
+                TilesToBuffer(accumBuffer, tiles, settings);
+            }
+            else
+            {
+                RenderProgressive(embreeScene, batches, ImGui::GetFrameCount(), accumBuffer, cam, settings);
+            }
 
             for (uint32_t y = 0; y < yres; y++)
             {
@@ -267,6 +277,7 @@ int application(int argc, char** argv)
             }
             if (ImGui::Button("Tiles"))
             {
+                edited = true;
                 if (doTiles) doTiles = false;
                 else doTiles = true;
             }
@@ -289,7 +300,8 @@ int application(int argc, char** argv)
         glfwSwapBuffers(window);
     }
 
-    ReleaseTiles(tiles);
+    // ReleaseTiles(tiles);
+    ReleasePixelBatches(batches);
 
     delete[] accumBuffer;
     delete[] renderBuffer;

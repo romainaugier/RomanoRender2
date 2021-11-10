@@ -46,6 +46,23 @@ void Camera::SetTransform() noexcept
 
 	transformation_matrix = translate_matrix * rotate_matrix;
 
+	ispcTransformMatrix.m[0][0] = transformation_matrix[0][0];
+	ispcTransformMatrix.m[0][1] = transformation_matrix[0][1];
+	ispcTransformMatrix.m[0][2] = transformation_matrix[0][2];
+	ispcTransformMatrix.m[0][3] = transformation_matrix[0][3];
+	ispcTransformMatrix.m[1][0] = transformation_matrix[1][0];
+	ispcTransformMatrix.m[1][1] = transformation_matrix[1][1];
+	ispcTransformMatrix.m[1][2] = transformation_matrix[1][2];
+	ispcTransformMatrix.m[1][3] = transformation_matrix[1][3];
+	ispcTransformMatrix.m[2][0] = transformation_matrix[2][0];
+	ispcTransformMatrix.m[2][1] = transformation_matrix[2][1];
+	ispcTransformMatrix.m[2][2] = transformation_matrix[2][2];
+	ispcTransformMatrix.m[2][3] = transformation_matrix[2][3];
+	ispcTransformMatrix.m[3][0] = transformation_matrix[3][0];
+	ispcTransformMatrix.m[3][1] = transformation_matrix[3][1];
+	ispcTransformMatrix.m[3][2] = transformation_matrix[3][2];
+	ispcTransformMatrix.m[3][3] = transformation_matrix[3][3];
+
 	posForRays = embree::Vec3f(transformation_matrix[0][3], transformation_matrix[1][3], transformation_matrix[2][3]);
 }
 
@@ -56,4 +73,21 @@ void Camera::SetTransformFromCam(const mat44& rotate_matrix) noexcept
 	set_translation(translate_matrix, pos);
 
 	transformation_matrix = rotate_matrix * translate_matrix;
+
+	ispcTransformMatrix.m[0][0] = transformation_matrix[0][0];
+	ispcTransformMatrix.m[0][1] = transformation_matrix[0][1];
+	ispcTransformMatrix.m[0][2] = transformation_matrix[0][2];
+	ispcTransformMatrix.m[0][3] = transformation_matrix[0][3];
+	ispcTransformMatrix.m[1][0] = transformation_matrix[1][0];
+	ispcTransformMatrix.m[1][1] = transformation_matrix[1][1];
+	ispcTransformMatrix.m[1][2] = transformation_matrix[1][2];
+	ispcTransformMatrix.m[1][3] = transformation_matrix[1][3];
+	ispcTransformMatrix.m[2][0] = transformation_matrix[2][0];
+	ispcTransformMatrix.m[2][1] = transformation_matrix[2][1];
+	ispcTransformMatrix.m[2][2] = transformation_matrix[2][2];
+	ispcTransformMatrix.m[2][3] = transformation_matrix[2][3];
+	ispcTransformMatrix.m[3][0] = transformation_matrix[3][0];
+	ispcTransformMatrix.m[3][1] = transformation_matrix[3][1];
+	ispcTransformMatrix.m[3][2] = transformation_matrix[3][2];
+	ispcTransformMatrix.m[3][3] = transformation_matrix[3][3];
 }

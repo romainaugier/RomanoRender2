@@ -79,7 +79,8 @@ struct mat44 {
 #if defined(__cplusplus) && (! defined(__ISPC_NO_EXTERN_C) || !__ISPC_NO_EXTERN_C )
 extern "C" {
 #endif // __cplusplus
-    extern void generate2dXY(float * randoms, const float x, const float y, float xres, float yres, float camAspect, float camScale, float * xOut, float * yOut, float * zOut, int32_t count);
+    extern void generate2dXY(float * randoms, const int32_t x, const int32_t xres, const int32_t yres, const float camAspect, const float camScale, float * xOut, float * yOut, float * zOut, const int32_t count);
+    extern void generate2dXYTiles(float * randoms, const float x, const float y, float xres, float yres, float camAspect, float camScale, float * xOut, float * yOut, float * zOut, int32_t count);
     extern void rayNormalize(float * origX, float * origY, float * origZ, float * worldX, float * worldY, float * worldZ, float * outX, float * outY, float * outZ, int32_t count);
     extern void raySet(struct RTCRayHit &rays, float posX, float posY, float posZ, float * dirX, float * dirY, float * dirZ, float t, int32_t idx, int32_t count);
     extern void rayTransform(float * x, float * y, float * z, const struct mat44 &matrix, float * outX, float * outY, float * outZ, int32_t count);

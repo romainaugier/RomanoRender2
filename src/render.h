@@ -12,11 +12,14 @@
 #include "ispc/ray_generation.h"
 #include "embree3/rtcore.h"
 #include "tbb/tbb.h"
+#include "common/sys/sysinfo.h"
 
 #include <vector>
 #include <iostream>
 
 typedef struct { GLfloat R, G, B; } color;
+
+// Tile rendering structs and functions
 
 struct alignas(32) Tile
 {
@@ -39,6 +42,7 @@ struct Tiles
 	uint16_t count;
 };
 
+
 void GenerateTiles(Tiles& tiles, 
 				   const Settings& settings) noexcept;
 
@@ -50,17 +54,11 @@ void TilesToBuffer(color* __restrict buffer,
 
 void SetTilePixel(Tile& tile, const embree::Vec3f& color, uint32_t x, uint32_t y) noexcept;
 
-void RenderBuckets(const RTCScene& embreeScene,
+void RenderTiles(const RTCScene& embreeScene,
 			const uint64_t& sample, 
 			const Tiles& tiles, 
 			const Camera& cam, 
 			const Settings& settings) noexcept;
-
-void RenderProgressive(const RTCScene& embreeScene,
-					   const uint64_t& sample,
-					   color* __restrict buffer,
-					   const Camera& cam,
-					   const Settings& settings) noexcept;
 
 void RenderTile(const RTCScene& embreeScene,
 				const uint64_t& sample,
@@ -78,10 +76,55 @@ void RenderTilePixel(const RTCScene& embreeScene,
 					 const Settings& settings,
 					 RTCIntersectContext& context) noexcept;
 
+// Progressive rendering structs and functions
+
+struct PixelBatch
+{
+	color* pixels = nullptr;
+	RTCRayHitNp rays;
+	float* randoms;
+
+	uint32_t size;
+	uint32_t xStart;
+	
+	uint16_t id;
+	uint32_t yStart;
+};
+
+struct PixelBatches
+{
+	std::vector<PixelBatch, tbb::cache_aligned_allocator<PixelBatch>> batches;
+
+	tbb::cache_aligned_allocator<color> pixelsAllocator;
+
+	uint16_t count;
+};
+
+void GeneratePixelBatches(PixelBatches& batches, 
+						  const Settings& settings) noexcept;
+
+void ReleasePixelBatches(PixelBatches& batches) noexcept;
+
+void RenderBatch(PixelBatch& batch,
+				 const RTCScene& embreeScene,
+				 const uint64_t& sample,
+				 const Camera& cam,
+                 const Settings& settings) noexcept;
+
+void RenderProgressive(const RTCScene& embreeScene,
+					   PixelBatches& batches,
+					   const uint64_t& sample,
+					   color* __restrict buffer,
+					   const Camera& cam,
+					   const Settings& settings) noexcept;
+
+
 embree::Vec3f Pathtrace(const RTCScene& embreeScene,
-			   const uint32_t seed,
-			   RTCRayHit& rayhit,
-			   RTCIntersectContext& context) noexcept;
+						const uint64_t seed,
+						embree::Vec3f& hitPosition,
+						embree::Vec3f& hitNormal,
+						uint32_t& id,
+						RTCIntersectContext& context) noexcept;
 
 #endif // !RENDER
 
