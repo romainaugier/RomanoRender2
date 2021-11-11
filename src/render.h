@@ -7,6 +7,7 @@
 #include "camera.h"
 #include "material.h"
 #include "settings.h"
+#include "scene/scene.h"
 #include "GL/glew.h"
 #include "ispc/rand.h"
 #include "ispc/ray_generation.h"
@@ -52,21 +53,27 @@ void TilesToBuffer(color* __restrict buffer,
 				   const Tiles& tiles,
 	               const Settings& settings) noexcept;
 
-void SetTilePixel(Tile& tile, const embree::Vec3f& color, uint32_t x, uint32_t y) noexcept;
+void SetTilePixel(Tile& tile, 
+				  const embree::Vec3f& color, 
+			      uint32_t x, 
+				  uint32_t y) noexcept;
 
 void RenderTiles(const RTCScene& embreeScene,
-			const uint64_t& sample, 
-			const Tiles& tiles, 
-			const Camera& cam, 
-			const Settings& settings) noexcept;
+				 const std::vector<Object>& sceneObjects,
+				 const uint64_t& sample, 
+				 const Tiles& tiles, 
+				 const Camera& cam, 
+				 const Settings& settings) noexcept;
 
 void RenderTile(const RTCScene& embreeScene,
+				const std::vector<Object>& sceneObjects,
 				const uint64_t& sample,
 				const Tile& tile,
 				const Camera& cam,
 				const Settings& settings) noexcept;
 
 void RenderTilePixel(const RTCScene& embreeScene,
+					 const std::vector<Object>& sceneObjects,
 					 const uint64_t& seed,
 					 const uint16_t x,
 					 const uint16_t y,
@@ -106,12 +113,14 @@ void GeneratePixelBatches(PixelBatches& batches,
 void ReleasePixelBatches(PixelBatches& batches) noexcept;
 
 void RenderBatch(PixelBatch& batch,
+				 const std::vector<Object>& sceneObjects,
 				 const RTCScene& embreeScene,
 				 const uint64_t& sample,
 				 const Camera& cam,
                  const Settings& settings) noexcept;
 
 void RenderProgressive(const RTCScene& embreeScene,
+					   const std::vector<Object>& sceneObjects,
 					   PixelBatches& batches,
 					   const uint64_t& sample,
 					   color* __restrict buffer,
@@ -120,6 +129,7 @@ void RenderProgressive(const RTCScene& embreeScene,
 
 
 embree::Vec3f Pathtrace(const RTCScene& embreeScene,
+					    const std::vector<Object>& sceneObjects,
 						const uint64_t seed,
 						embree::Vec3f& hitPosition,
 						embree::Vec3f& hitNormal,

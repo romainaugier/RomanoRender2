@@ -26,7 +26,7 @@ int application(int argc, char** argv)
     _MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_ON);
 
     // Setup embree scene
-    std::string path = "D:/dev/Utils/Models/kitchen_scene.obj";
+    std::string path = "D:/dev/Utils/Models/scene_x_wing.obj";
     
     RTCDevice embreeDevice = initializeDevice();
     RTCScene embreeScene = rtcNewScene(embreeDevice);
@@ -186,7 +186,7 @@ int application(int argc, char** argv)
         flythrough_camera_update(
             pos, look, up, view,
             delta_time_sec,
-            10000000.0f * (GetAsyncKeyState(VK_LSHIFT) ? 2.0f : 1.0f) * activated,
+            1000000.0f * (GetAsyncKeyState(VK_LSHIFT) ? 2.0f : 1.0f) * activated,
             0.5f * activated,
             80.0f,
             cursor.x - oldCursor.x, cursor.y - oldCursor.y,
@@ -224,12 +224,12 @@ int application(int argc, char** argv)
 
             if (doTiles)
             {
-                RenderTiles(embreeScene, ImGui::GetFrameCount(), tiles, cam, settings);
+                RenderTiles(embreeScene, objects, ImGui::GetFrameCount(), tiles, cam, settings);
                 TilesToBuffer(accumBuffer, tiles, settings);
             }
             else
             {
-                RenderProgressive(embreeScene, batches, ImGui::GetFrameCount(), accumBuffer, cam, settings);
+                RenderProgressive(embreeScene, objects, batches, ImGui::GetFrameCount(), accumBuffer, cam, settings);
             }
 
             for (uint32_t y = 0; y < yres; y++)

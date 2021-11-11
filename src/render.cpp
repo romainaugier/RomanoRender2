@@ -104,10 +104,11 @@ void SetTilePixel(Tile& tile, const embree::Vec3f& color, uint32_t x, uint32_t y
 }
 
 void RenderTiles(const RTCScene& embreeScene, 
-                   const uint64_t& sample,
-                   const Tiles& tiles, 
-                   const Camera& cam, 
-                   const Settings& settings) noexcept
+                 const std::vector<Object>& sceneObjects,
+                 const uint64_t& sample,
+                 const Tiles& tiles, 
+                 const Camera& cam, 
+                 const Settings& settings) noexcept
 {
     static tbb::affinity_partitioner partitioner;
 
@@ -115,22 +116,14 @@ void RenderTiles(const RTCScene& embreeScene,
         {
             for (size_t t = r.begin(), t_end = r.end(); t < t_end; t++)
             {
-                RenderTile(embreeScene, sample, tiles.tiles[t], cam, settings);
+                RenderTile(embreeScene, sceneObjects, sample, tiles.tiles[t], cam, settings);
             }
 
         }, partitioner);
 }
 
-void RenderProgressive(const RTCScene& embreeScene,
-                       const uint64_t& sample,
-                       color* __restrict buffer,
-                       const Camera& cam,
-                       const Settings& settings) noexcept
-{
-
-}
-
 void RenderTile(const RTCScene& embreeScene,
+                const std::vector<Object>& sceneObjects,
                 const uint64_t& sample,
                 const Tile& tile,
                 const Camera& cam,
@@ -223,7 +216,16 @@ void RenderTile(const RTCScene& embreeScene,
         {
             if (tile.rays.hit.geomID[idx] != RTC_INVALID_GEOMETRY_ID)
             {
-                embree::Vec3f output = (embree::normalize(embree::Vec3f(tile.rays.hit.Ng_x[idx], tile.rays.hit.Ng_y[idx], tile.rays.hit.Ng_z[idx])) + embree::Vec3f(0.5f)) / 2.0f;
+                const uint32_t hitGeomID = tile.rays.hit.geomID[idx];
+                const uint32_t hitPrimID = tile.rays.hit.primID[idx];
+                const float hitU = tile.rays.hit.u[idx];
+                const float hitV = tile.rays.hit.v[idx];
+
+                embree::Vec3f hitNormal;
+                
+                rtcInterpolate1(sceneObjects[hitGeomID].geometry, hitPrimID, hitU, hitV, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, (float*)&hitNormal, nullptr, nullptr, 3);
+
+                embree::Vec3f output = (hitNormal + embree::Vec3f(0.5f)) / 2.0f;
 
                 tile.pixels[(x - tile.x_start) + (y - tile.y_start) * tile.size_y].R = output.x;
                 tile.pixels[(x - tile.x_start) + (y - tile.y_start) * tile.size_y].G = output.y;
@@ -256,6 +258,7 @@ void RenderTile(const RTCScene& embreeScene,
 }
 
 void RenderTilePixel(const RTCScene& embreeScene,
+                     const std::vector<Object>& sceneObjects,
                      const uint64_t& seed,
                      const uint16_t x,
                      const uint16_t y,
@@ -315,6 +318,7 @@ void ReleasePixelBatches(PixelBatches& batches) noexcept
 }
 
 void RenderBatch(PixelBatch& batch,
+                 const std::vector<Object>& sceneObjects,
                  const RTCScene& embreeScene,
                  const uint64_t& sample,
                  const Camera& cam,
@@ -374,16 +378,22 @@ void RenderBatch(PixelBatch& batch,
         {
             if (batch.rays.hit.geomID[k] != RTC_INVALID_GEOMETRY_ID)
             {
+                const uint32_t hitGeomID = batch.rays.hit.geomID[k];
+                const uint32_t hitPrimID = batch.rays.hit.primID[k];
+                const float hitU = batch.rays.hit.u[k];
+                const float hitV = batch.rays.hit.v[k];
+
                 embree::Vec3f hitPosition = embree::Vec3f(batch.rays.ray.org_x[k], batch.rays.ray.org_y[k], batch.rays.ray.org_z[k]) + batch.rays.ray.tfar[k] * embree::Vec3f(batch.rays.ray.dir_x[k], batch.rays.ray.dir_y[k], batch.rays.ray.dir_z[k]);
-                embree::Vec3f hitNormal = embree::normalize(embree::Vec3f(batch.rays.hit.Ng_x[k], batch.rays.hit.Ng_y[k], batch.rays.hit.Ng_z[k]));
+                // const embree::Vec3f hitNormal = embree::normalize(embree::Vec3f(batch.rays.hit.Ng_x[k], batch.rays.hit.Ng_y[k], batch.rays.hit.Ng_z[k]));
 
-                uint32_t x = (i + k) % settings.xres;
-                uint32_t y = (i + k) / settings.xres;
+                embree::Vec3f hitNormal;
+                rtcInterpolate1(sceneObjects[hitGeomID].geometry, hitPrimID, hitU, hitV, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, (float*)&hitNormal, nullptr, nullptr, 3);
 
-                embree::Vec3f output = Pathtrace(embreeScene, sample * i * (k + 1), hitPosition, hitNormal, batch.rays.hit.geomID[k], context);
-                //embree::Vec3f output = embree::Vec3f(randomFloatWangHash(sample * i * (k + 1) + 4832));
+                embree::Vec2f hitUv;
+                rtcInterpolate1(sceneObjects[hitGeomID].geometry, hitPrimID, hitU, hitV, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, (float*)&hitUv, nullptr, nullptr, 2);
 
-                //embree::Vec3f output = (embree::normalize(embree::Vec3f(batch.rays.hit.Ng_x[k], batch.rays.hit.Ng_y[k], batch.rays.hit.Ng_z[k])) + embree::Vec3f(0.5f)) / 2.0f;
+                // const embree::Vec3f output = Pathtrace(embreeScene, sceneObjects, sample * i * (k + 1), hitPosition, hitNormal, batch.rays.hit.geomID[k], context);
+                const embree::Vec3f output = (embree::sin(hitUv.x * 100.0f) * embree::sin(hitUv.y * 100.0f)) < 0.0f ? embree::Vec3f(0.25f) : embree::Vec3f(0.75f);
 
                 constexpr float gamma = 1.0f / 2.2f;
 
@@ -402,6 +412,7 @@ void RenderBatch(PixelBatch& batch,
 }
 
 void RenderProgressive(const RTCScene& embreeScene,
+                       const std::vector<Object>& sceneObjects,
                        PixelBatches& batches,
                        const uint64_t& sample,
                        color* __restrict buffer,
@@ -414,7 +425,7 @@ void RenderProgressive(const RTCScene& embreeScene,
         {
             for (size_t t = r.begin(), t_end = r.end(); t < t_end; t++)
             {
-                RenderBatch(batches.batches[t], embreeScene, sample, cam, settings);
+                RenderBatch(batches.batches[t], sceneObjects, embreeScene, sample, cam, settings);
 
                 uint32_t batchPixelIndex = 0;
 
@@ -432,6 +443,7 @@ void RenderProgressive(const RTCScene& embreeScene,
 }
 
 embree::Vec3f Pathtrace(const RTCScene& embreeScene,
+                        const std::vector<Object>& sceneObjects,
                         const uint64_t seed, 
                         embree::Vec3f& hitPosition,
                         embree::Vec3f& hitNormal,
@@ -447,13 +459,15 @@ embree::Vec3f Pathtrace(const RTCScene& embreeScene,
 
     RTCRayHit rayhit;
 
-    uint32_t hitId = id;
+    uint32_t hitGeomID = id;
+    uint32_t hitPrimID;
+    float hitU, hitV;
 
     uint8_t bounce = 0;
 
     while (true)
     {
-        if (bounce > 3)
+        if (bounce > 6)
         {
             break;
         }
@@ -505,9 +519,13 @@ embree::Vec3f Pathtrace(const RTCScene& embreeScene,
             break;
         }
 
+        hitGeomID = rayhit.hit.geomID;
+        hitPrimID = rayhit.hit.primID;
+        hitU = rayhit.hit.u;
+        hitV = rayhit.hit.v;
         hitPosition = embree::Vec3f(rayhit.ray.org_x, rayhit.ray.org_y, rayhit.ray.org_z) + rayhit.ray.tfar * embree::Vec3f(rayhit.ray.dir_x, rayhit.ray.dir_y, rayhit.ray.dir_z);
-        hitNormal = embree::normalize(embree::Vec3f(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z));
-        hitId = rayhit.hit.geomID;
+        rtcInterpolate1(sceneObjects[hitGeomID].geometry, hitPrimID, hitU, hitV, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, (float*)&hitNormal, nullptr, nullptr, 3);
+        // hitNormal = embree::normalize(embree::Vec3f(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z));
 
         bounce++;
     }
