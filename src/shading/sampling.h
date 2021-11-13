@@ -1,17 +1,13 @@
 #pragma once
 
-#include "common/math/Vec3.h"
+#include "../common/math/Vec3.h"
+#include "../common/math/constants.h"
 #include <immintrin.h>
 #include <limits>
 #include <cstring>
 
-#define PI 3.14159265358979323846f
-#define INVPI 0.31830988618379067153f
-
-#define INF std::numeric_limits<float>::infinity()
-
-__forceinline float deg2rad(const float deg) { return deg * PI / 180; }
-__forceinline float rad2deg(const float rad) { return rad * 180 / PI; }
+__forceinline float deg2rad(const float deg) { return deg * float(embree::pi) / 180; }
+__forceinline float rad2deg(const float rad) { return rad * 180 / float(embree::pi); }
 
 template <typename T>
 __forceinline T fit(T s, T a1, T a2, T b1, T b2) { return b1 + ((s - a1) * (b2 - b1)) / (a2 - a1); }
@@ -221,7 +217,7 @@ inline void randomFloatPcg8(float* randoms, unsigned int* state)
     _mm256_storeu_ps(randoms, floats);
 }
 
-inline embree::Vec3f sample_ray_in_hemisphere(const embree::Vec3f& hit_normal, const float* randoms)
+inline embree::Vec3f SampleHemisphere(const embree::Vec3f& hit_normal, const float random_x, const float random_y)
 {
     float signZ = (hit_normal.z >= 0.0f) ? 1.0f : -1.0f;
     float a = -1.0f / (signZ + hit_normal.z);
@@ -229,44 +225,18 @@ inline embree::Vec3f sample_ray_in_hemisphere(const embree::Vec3f& hit_normal, c
     embree::Vec3f b1 = embree::Vec3f(1.0f + signZ * hit_normal.x * hit_normal.x * a, signZ * b, -signZ * hit_normal.x);
     embree::Vec3f b2 = embree::Vec3f(b, signZ + hit_normal.y * hit_normal.y * a, -hit_normal.y);
 
-    float phi = 2.0f * PI * randoms[0];
-    float cosTheta = embree::sqrt(randoms[1]);
-    float sinTheta = embree::sqrt(1.0f - randoms[1]);
+    float phi = 2.0f * float(embree::pi) * random_x;
+    float cosTheta = embree::sqrt(random_y);
+    float sinTheta = embree::sqrt(1.0f - random_y);
 
     return embree::normalize(((b1 * embree::cos(phi) + b2 * embree::sin(phi)) * cosTheta + hit_normal * sinTheta));
 }
 
-
-//inline embree::Vec3* sample_ray_in_hemisphere8(const Vec3* hit_normal, int* seed)
-//{
-//    const float* rand1 = randomFloatWangHash8(seed);
-//    const float* rand2 = randomFloatWangHash8(seed);
-//    Vec3 directions[8];
-//
-//    for (int i = 0; i < 8; i++)
-//    {
-//        float signZ = (hit_normal[i].z >= 0.0f) ? 1.0f : -1.0f;
-//        float a = -1.0f / (signZ + hit_normal[i].z);
-//        float b = hit_normal[i].x * hit_normal[i].y * a;
-//        Vec3 b1 = Vec3(1.0f + signZ * hit_normal[i].x * hit_normal[i].x * a, signZ * b, -signZ * hit_normal[i].x);
-//        Vec3 b2 = Vec3(b, signZ + hit_normal[i].y * hit_normal[i].y * a, -hit_normal[i].y);
-//
-//
-//        float phi = 2.0f * PI * rand1[i];
-//        float cosTheta = sqrt(rand2[i]);
-//        float sinTheta = sqrt(1.0f - rand2[i]);
-//        directions[i] = normalize(((b1 * cosf(phi) + b2 * sinf(phi)) * cosTheta + hit_normal[i] * sinTheta));
-//    }
-//
-//    return directions;
-//}
-
-
-inline embree::Vec3f sample_ray_in_hemisphere2(const embree::Vec3f& hit_normal, const unsigned int seed)
+inline embree::Vec3f SampleHemisphereUnsafe(const embree::Vec3f& hit_normal, const unsigned int seed)
 {
     float a = 1.0f - 2.0f * randomFloatWangHash(seed + 538239);
     float b = embree::sqrt(1.0f - a * a);
-    float phi = 2.0f * PI * randomFloatWangHash(seed + 781523);
+    float phi = 2.0f * float(embree::pi) *randomFloatWangHash(seed + 781523);
 
     return embree::Vec3f(hit_normal.x + b * embree::cos(phi), hit_normal.y + b * embree::sin(phi), hit_normal.z + a);
 }

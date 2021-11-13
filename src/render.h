@@ -25,7 +25,7 @@ typedef struct { GLfloat R, G, B; } color;
 struct alignas(32) Tile
 {
 	color* pixels = nullptr;
-	RTCRayHitNp rays;
+	RayPacket rayPacket;
 	float* randoms;
 
 	uint16_t x_start, x_end;
@@ -49,16 +49,13 @@ void GenerateTiles(Tiles& tiles,
 
 void ReleaseTiles(Tiles& tiles) noexcept;
 
-void TilesToBuffer(color* __restrict buffer,
-				   const Tiles& tiles,
-	               const Settings& settings) noexcept;
-
 void SetTilePixel(Tile& tile, 
 				  const embree::Vec3f& color, 
 			      uint32_t x, 
 				  uint32_t y) noexcept;
 
 void RenderTiles(const RTCScene& embreeScene,
+				 color* __restrict buffer,
 				 const std::vector<Object>& sceneObjects,
 				 const uint64_t& sample, 
 				 const Tiles& tiles, 
@@ -85,11 +82,14 @@ void RenderTilePixel(const RTCScene& embreeScene,
 
 // Progressive rendering structs and functions
 
+#define RAYBATCHSIZE 2048
+
 struct PixelBatch
 {
 	color* pixels = nullptr;
-	RTCRayHitNp rays;
-	float* randoms;
+	RayPacket rayPacket;
+	float* cache;
+	int* seeds;
 
 	uint32_t size;
 	uint32_t xStart;

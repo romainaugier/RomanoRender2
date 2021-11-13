@@ -7,6 +7,10 @@
 #include "glutils.h"
 #include "embree.h"
 
+#include "shading/osl_renderer.h"
+
+#include "OSL/oslexec.h"
+
 #include <chrono>
 #include <Windows.h>
 #include <WinUser.h>

@@ -1,38 +1,33 @@
 #pragma once
 
-#ifndef RAY
-#define RAY
-
-#include "maths.h"
+#include "common/math/vec3.h"
 
 #include "embree3/rtcore_ray.h"
 
-#include <limits>
+#include <algorithm>
 #include <stdint.h>
-#include <immintrin.h>
 
-// Helper functions to set rays
-
+// Helper functions for rays
 __forceinline void SetRayPosition(RTCRayHit* rayhit, const embree::Vec3f& position) noexcept { rayhit->ray.org_x = position.x; rayhit->ray.org_y = position.y; rayhit->ray.org_z = position.z; }
 __forceinline void SetRayDirection(RTCRayHit* rayhit, const embree::Vec3f& direction) noexcept { rayhit->ray.dir_x = direction.x; rayhit->ray.dir_y = direction.y; rayhit->ray.dir_z = direction.z; }
 
 __forceinline void SetRay(RTCRayHit* rayhit, const embree::Vec3f& position, const embree::Vec3f& direction, float t) noexcept
-{ 
-	SetRayPosition(rayhit, position); 
-	SetRayDirection(rayhit, direction); 
-	rayhit->ray.tnear = 0.0001f; 
-	rayhit->ray.tfar = t; 
+{
+	SetRayPosition(rayhit, position);
+	SetRayDirection(rayhit, direction);
+	rayhit->ray.tnear = 0.0001f;
+	rayhit->ray.tfar = t;
 	rayhit->ray.mask = -1;
 	rayhit->ray.flags = 0;
 	rayhit->hit.geomID = RTC_INVALID_GEOMETRY_ID;
 	rayhit->hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
 }
 
-__forceinline embree::Vec3f GetRayHitPosition(RTCRayHit* rayhit) noexcept 
-{	
-	return embree::Vec3f(rayhit->ray.org_x + rayhit->ray.dir_x * rayhit->ray.tfar, 
-				rayhit->ray.org_y + rayhit->ray.dir_y * rayhit->ray.tfar,
-				rayhit->ray.org_z + rayhit->ray.dir_z * rayhit->ray.tfar); 
+__forceinline embree::Vec3f GetRayHitPosition(RTCRayHit* rayhit) noexcept
+{
+	return embree::Vec3f(rayhit->ray.org_x + rayhit->ray.dir_x * rayhit->ray.tfar,
+		rayhit->ray.org_y + rayhit->ray.dir_y * rayhit->ray.tfar,
+		rayhit->ray.org_z + rayhit->ray.dir_z * rayhit->ray.tfar);
 }
 
 __forceinline embree::Vec3f GetRayHitNormal(RTCRayHit* rayhit) noexcept { return embree::Vec3f(rayhit->hit.Ng_x, rayhit->hit.Ng_y, rayhit->hit.Ng_z); }
@@ -61,18 +56,18 @@ __forceinline void PostIntersectPrep(RTCRayHit* rayhit, const embree::Vec3f& dir
 
 // Helper functions to set rays 8
 
-__forceinline void SetRay8Position(RTCRayHit8* rayhit, const embree::Vec3f& position, const uint8_t index) noexcept 
-{	
-	rayhit->ray.org_x[index] = position.x; 
-	rayhit->ray.org_y[index] = position.y; 
-	rayhit->ray.org_z[index] = position.z; 
+__forceinline void SetRay8Position(RTCRayHit8* rayhit, const embree::Vec3f& position, const uint8_t index) noexcept
+{
+	rayhit->ray.org_x[index] = position.x;
+	rayhit->ray.org_y[index] = position.y;
+	rayhit->ray.org_z[index] = position.z;
 }
 
-__forceinline void SetRay8Direction(RTCRayHit8* rayhit, const embree::Vec3f& direction, const uint8_t index) noexcept 
-{ 
-	rayhit->ray.dir_x[index] = direction.x; 
-	rayhit->ray.dir_y[index] = direction.y; 
-	rayhit->ray.dir_z[index] = direction.z; 
+__forceinline void SetRay8Direction(RTCRayHit8* rayhit, const embree::Vec3f& direction, const uint8_t index) noexcept
+{
+	rayhit->ray.dir_x[index] = direction.x;
+	rayhit->ray.dir_y[index] = direction.y;
+	rayhit->ray.dir_z[index] = direction.z;
 }
 
 __forceinline void SetRay8(RTCRayHit8* rayhit, const embree::Vec3f& position, const embree::Vec3f& direction, float t, const uint8_t index) noexcept
@@ -118,66 +113,128 @@ __forceinline void PostIntersect8Prep(RTCRayHit8* rayhit, const embree::Vec3f& d
 	rayhit->hit.instID[0][index] = RTC_INVALID_GEOMETRY_ID;
 }
 
-// Helper functions to set ray N in soa 
 
-using RTCRayHit256 = RTCRayHitNt<256>;
-
-__forceinline void AllocateRayhitNp(RTCRayHitNp& tmp, const int N)
+// Helper functions for ray packets
+struct HitGlobals
 {
-	tmp.ray.dir_x = (float*)_aligned_malloc(sizeof(float) * N, 16);
-	tmp.ray.dir_y = (float*)_aligned_malloc(sizeof(float) * N, 16);
-	tmp.ray.dir_z = (float*)_aligned_malloc(sizeof(float) * N, 16);
+	float* p_x;
+	float* p_y;
+	float* p_z;
 
-	tmp.ray.org_x = (float*)_aligned_malloc(sizeof(float) * N, 16);
-	tmp.ray.org_y = (float*)_aligned_malloc(sizeof(float) * N, 16);
-	tmp.ray.org_z = (float*)_aligned_malloc(sizeof(float) * N, 16);
+	float* n_x;
+	float* n_y;
+	float* n_z;
 
-	tmp.ray.flags = (unsigned int*)_aligned_malloc(sizeof(unsigned int) * N, 16);
-	tmp.ray.tnear = (float*)_aligned_malloc(sizeof(float) * N, 16);
-	tmp.ray.tfar = (float*)_aligned_malloc(sizeof(float) * N, 16);
-	tmp.ray.time = (float*)_aligned_malloc(sizeof(float) * N, 16);
-	tmp.ray.mask = (unsigned int*)_aligned_malloc(sizeof(unsigned int) * N, 16);
-	tmp.ray.id = (unsigned int*)_aligned_malloc(sizeof(unsigned int) * N, 16);
+	float* s;
+	float* t;
 
-	tmp.hit.Ng_x = (float*)_aligned_malloc(sizeof(float) * N, 16);
-	tmp.hit.Ng_y = (float*)_aligned_malloc(sizeof(float) * N, 16);
-	tmp.hit.Ng_z = (float*)_aligned_malloc(sizeof(float) * N, 16);
+	embree::Vec3f* color;
+};
 
-	tmp.hit.u = (float*)_aligned_malloc(sizeof(float) * N, 16);
-	tmp.hit.v = (float*)_aligned_malloc(sizeof(float) * N, 16);
+struct RayPacket
+{
+	RTCRayHitNp rayHit;
+	HitGlobals hitGlobals;
 
-	tmp.hit.primID = (unsigned int*)_aligned_malloc(sizeof(unsigned int) * N, 16);
-	tmp.hit.geomID = (unsigned int*)_aligned_malloc(sizeof(unsigned int) * N, 16);
-	tmp.hit.instID[0] = (unsigned int*)_aligned_malloc(sizeof(unsigned int) * N, 16);
+	embree::Vec3f* output;
+};
+
+// Allocate memory for a ray packet
+__forceinline void AllocateRayPacketN(RayPacket& rayPacket, const int N) noexcept
+{
+	rayPacket.rayHit.ray.dir_x = (float*)embree::alignedMalloc(sizeof(float) * N, 16);
+	rayPacket.rayHit.ray.dir_y = (float*)embree::alignedMalloc(sizeof(float) * N, 16);
+	rayPacket.rayHit.ray.dir_z = (float*)embree::alignedMalloc(sizeof(float) * N, 16);
+
+	rayPacket.rayHit.ray.org_x = (float*)embree::alignedMalloc(sizeof(float) * N, 16);
+	rayPacket.rayHit.ray.org_y = (float*)embree::alignedMalloc(sizeof(float) * N, 16);
+	rayPacket.rayHit.ray.org_z = (float*)embree::alignedMalloc(sizeof(float) * N, 16);
+
+	rayPacket.rayHit.ray.flags = (unsigned int*)embree::alignedMalloc(sizeof(unsigned int) * N, 16);
+	rayPacket.rayHit.ray.tnear = (float*)embree::alignedMalloc(sizeof(float) * N, 16);
+	rayPacket.rayHit.ray.tfar = (float*)embree::alignedMalloc(sizeof(float) * N, 16);
+	rayPacket.rayHit.ray.time = (float*)embree::alignedMalloc(sizeof(float) * N, 16);
+	rayPacket.rayHit.ray.mask = (unsigned int*)embree::alignedMalloc(sizeof(unsigned int) * N, 16);
+	rayPacket.rayHit.ray.id = (unsigned int*)embree::alignedMalloc(sizeof(unsigned int) * N, 16);
+
+	rayPacket.rayHit.hit.Ng_x = (float*)embree::alignedMalloc(sizeof(float) * N, 16);
+	rayPacket.rayHit.hit.Ng_y = (float*)embree::alignedMalloc(sizeof(float) * N, 16);
+	rayPacket.rayHit.hit.Ng_z = (float*)embree::alignedMalloc(sizeof(float) * N, 16);
+
+	rayPacket.rayHit.hit.u = (float*)embree::alignedMalloc(sizeof(float) * N, 16);
+	rayPacket.rayHit.hit.v = (float*)embree::alignedMalloc(sizeof(float) * N, 16);
+
+	rayPacket.rayHit.hit.primID = (unsigned int*)embree::alignedMalloc(sizeof(unsigned int) * N, 16);
+	rayPacket.rayHit.hit.geomID = (unsigned int*)embree::alignedMalloc(sizeof(unsigned int) * N, 16);
+	rayPacket.rayHit.hit.instID[0] = (unsigned int*)embree::alignedMalloc(sizeof(unsigned int) * N, 16);
+
+	rayPacket.hitGlobals.p_x = (float*)embree::alignedMalloc(sizeof(float) * N, 16);
+	rayPacket.hitGlobals.p_y = (float*)embree::alignedMalloc(sizeof(float) * N, 16);
+	rayPacket.hitGlobals.p_z = (float*)embree::alignedMalloc(sizeof(float) * N, 16);
+
+	rayPacket.hitGlobals.n_x = (float*)embree::alignedMalloc(sizeof(float) * N, 16);
+	rayPacket.hitGlobals.n_y = (float*)embree::alignedMalloc(sizeof(float) * N, 16);
+	rayPacket.hitGlobals.n_z = (float*)embree::alignedMalloc(sizeof(float) * N, 16);
+
+	rayPacket.hitGlobals.s = (float*)embree::alignedMalloc(sizeof(float) * N, 16);
+	rayPacket.hitGlobals.t = (float*)embree::alignedMalloc(sizeof(float) * N, 16);
+
+	rayPacket.hitGlobals.color = (embree::Vec3f*)embree::alignedMalloc(sizeof(embree::Vec3f) * N, 16);
 }
 
-__forceinline void FreeRayhitNp(RTCRayHitNp& tmp)
+// Free memory of an allocated ray packet
+__forceinline void FreeRayPacketN(RayPacket& rayPacket) noexcept
 {
-	_aligned_free(tmp.ray.dir_x);
-	_aligned_free(tmp.ray.dir_y);
-	_aligned_free(tmp.ray.dir_z);
+	embree::alignedFree(rayPacket.rayHit.ray.dir_x);
+	embree::alignedFree(rayPacket.rayHit.ray.dir_y);
+	embree::alignedFree(rayPacket.rayHit.ray.dir_z);
 
-	_aligned_free(tmp.ray.org_x);
-	_aligned_free(tmp.ray.org_y);
-	_aligned_free(tmp.ray.org_z);
+	embree::alignedFree(rayPacket.rayHit.ray.org_x);
+	embree::alignedFree(rayPacket.rayHit.ray.org_y);
+	embree::alignedFree(rayPacket.rayHit.ray.org_z);
 
-	_aligned_free(tmp.ray.flags);
-	_aligned_free(tmp.ray.tnear);
-	_aligned_free(tmp.ray.tfar);
-	_aligned_free(tmp.ray.mask);
-	_aligned_free(tmp.ray.time);
-	_aligned_free(tmp.ray.id);
+	embree::alignedFree(rayPacket.rayHit.ray.flags);
+	embree::alignedFree(rayPacket.rayHit.ray.tnear);
+	embree::alignedFree(rayPacket.rayHit.ray.tfar);
+	embree::alignedFree(rayPacket.rayHit.ray.mask);
+	embree::alignedFree(rayPacket.rayHit.ray.time);
+	embree::alignedFree(rayPacket.rayHit.ray.id);
 
-	_aligned_free(tmp.hit.Ng_x);
-	_aligned_free(tmp.hit.Ng_y);
-	_aligned_free(tmp.hit.Ng_z);
+	embree::alignedFree(rayPacket.rayHit.hit.Ng_x);
+	embree::alignedFree(rayPacket.rayHit.hit.Ng_y);
+	embree::alignedFree(rayPacket.rayHit.hit.Ng_z);
 
-	_aligned_free(tmp.hit.u);
-	_aligned_free(tmp.hit.v);
+	embree::alignedFree(rayPacket.rayHit.hit.u);
+	embree::alignedFree(rayPacket.rayHit.hit.v);
 
-	_aligned_free(tmp.hit.primID);
-	_aligned_free(tmp.hit.geomID);
-	_aligned_free(tmp.hit.instID[0]);
+	embree::alignedFree(rayPacket.rayHit.hit.primID);
+	embree::alignedFree(rayPacket.rayHit.hit.geomID);
+	embree::alignedFree(rayPacket.rayHit.hit.instID[0]);
+
+	embree::alignedFree(rayPacket.hitGlobals.p_x);
+	embree::alignedFree(rayPacket.hitGlobals.p_y);
+	embree::alignedFree(rayPacket.hitGlobals.p_z);
+	
+	embree::alignedFree(rayPacket.hitGlobals.n_x);
+	embree::alignedFree(rayPacket.hitGlobals.n_y);
+	embree::alignedFree(rayPacket.hitGlobals.n_z);
+
+	embree::alignedFree(rayPacket.hitGlobals.s);
+	embree::alignedFree(rayPacket.hitGlobals.t);
+
+	embree::alignedFree(rayPacket.hitGlobals.color);
+}
+
+__forceinline void SortRayPacketGeomIDArray(RTCRayHitNp& rayhit, uint16_t N) noexcept
+{
+	std::sort(&rayhit.hit.geomID[0], &rayhit.hit.geomID[N], [](const int a, const int b) { return a > b; });
+}
+
+// Sort the different arrays of the ray packets, and return the index where missed intersection starts
+__forceinline uint32_t SortRayPacketNByIntersectState(RTCRayHitNp& rayhit, uint16_t N) noexcept
+{
+	// Sort the geomID array of the ray packet
+	SortRayPacketGeomIDArray(rayhit, N);
 }
 
 __forceinline void SetRayNPosition(RTCRayHitNp rayhit, const embree::Vec3f& position, const uint8_t index) noexcept
@@ -236,7 +293,4 @@ __forceinline void PostIntersectNPrep(RTCRayHitNp rayhit, const embree::Vec3f& d
 	rayhit.hit.geomID[index] = RTC_INVALID_GEOMETRY_ID;
 	rayhit.hit.instID[0][index] = RTC_INVALID_GEOMETRY_ID;
 }
-
-
-#endif // !RAY
 

@@ -26,7 +26,7 @@ int application(int argc, char** argv)
     _MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_ON);
 
     // Setup embree scene
-    std::string path = "D:/dev/Utils/Models/scene_x_wing.obj";
+    std::string path = "D:/dev/Utils/Models/simle_scene.obj";
     
     RTCDevice embreeDevice = initializeDevice();
     RTCScene embreeScene = rtcNewScene(embreeDevice);
@@ -36,16 +36,47 @@ int application(int argc, char** argv)
 
     std::vector<Object> objects;
     
-    auto start = get_time();
-
     LoadObject(embreeDevice, path, objects);
+    
+    auto start = get_time();
+    
     BuildScene(embreeDevice, embreeScene, objects);
 
     auto end = get_time();
 
     float elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-    printf("Acceleration structure building time : %0.3f ms\n", elapsed);
+    printf("[DEBUG] Acceleration structure building time : %0.3f ms\n", elapsed);
+
+    // Setup OSL
+    Renderer renderer;
+    OSL::ErrorHandler oslErrHandler;
+
+    OSL::ShadingSystem* oslShadingSys = new OSL::ShadingSystem(&renderer, nullptr, &oslErrHandler);
+    oslShadingSys->attribute("allow_shader_replacement", 1);
+    OSL::ustring outputs[] = { OSL::ustring("Cout") };
+    oslShadingSys->attribute("renderer_outputs", OSL::TypeDesc(OSL::TypeDesc::STRING, 1), &outputs);
+
+    OSL::ShaderGroupRef group = oslShadingSys->ShaderGroupBegin("test");
+    oslShadingSys->Shader(*group, "surface", "D:/dev/RomanoRender2/src/shaders/matte.oso", nullptr);
+    oslShadingSys->ShaderGroupEnd(*group);
+
+    OSL::PerThreadInfo* info = oslShadingSys->create_thread_info();
+    OSL::ShadingContext* ctx = oslShadingSys->get_context(info);
+
+    OSL::ShaderGlobals globals;
+    globals.u = 0.5f;
+    globals.v = 0.5f;
+
+    globals.N = OSL::Vec3(0.0f, 0.0f, 1.0f);
+
+    if (oslShadingSys->execute(ctx, *group, globals))
+    {
+        std::cout << "[DEBUG] : OSL Shader executed successfully" << "\n";
+    }
+
+    oslShadingSys->release_context(ctx);
+    oslShadingSys->destroy_thread_info(info);
 
     // Setup window
     glfwSetErrorCallback(glfw_error_callback);
@@ -111,7 +142,6 @@ int application(int argc, char** argv)
 
     Tiles tiles;
     GenerateTiles(tiles, settings);
-    TilesToBuffer(renderBuffer, tiles, settings);
 
     PixelBatches batches;
     GeneratePixelBatches(batches, settings);
@@ -224,8 +254,8 @@ int application(int argc, char** argv)
 
             if (doTiles)
             {
-                RenderTiles(embreeScene, objects, ImGui::GetFrameCount(), tiles, cam, settings);
-                TilesToBuffer(accumBuffer, tiles, settings);
+                RenderTiles(embreeScene, accumBuffer, objects, ImGui::GetFrameCount(), tiles, cam, settings);
+                // TilesToBuffer(accumBuffer, tiles, settings);
             }
             else
             {

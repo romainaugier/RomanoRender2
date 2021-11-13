@@ -188,7 +188,7 @@ export void generate2dXY(uniform float randoms[],
 	foreach(index = 0 ... count)
 	{
 		const float rand1 = randoms[index];
-		const float rand2 = randoms[index + 1];
+		const float rand2 = randoms[(index + 1)];
 
 		// const float dx = sqrt(-0.5 * log(rand1)) * cos(2.0 * PI * rand2);
 		// const float dy = sqrt(-0.5 * log(rand1)) * sin(2.0 * PI * rand2);
@@ -233,7 +233,7 @@ export void rayNormalize(uniform float origX[],
 		float tY = worldY[i] - origY[i];
 		float tZ = worldZ[i] - origZ[i];
 
-		float t = sqrt(tX * tX + tY * tY + tZ * tZ);
+		float t = rsqrt(tX * tX + tY * tY + tZ * tZ);
 
 		outX[i] = tX * t;
 		outY[i] = tY * t;
@@ -259,6 +259,7 @@ export void raySet(uniform RTCRayHit &rays, uniform float posX, uniform float po
 		rays.ray.tnear[idx + i] = 0.0001f;
 		rays.ray.time[idx + i] = 0.0f;
 		rays.ray.tfar[idx + i] = t;
+		rays.ray.id[idx + i] = i;
 		rays.ray.mask[idx + i] = -1;
 		rays.ray.flags[idx + i] = 0;
 
