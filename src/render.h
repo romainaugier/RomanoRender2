@@ -14,6 +14,7 @@
 #include "embree3/rtcore.h"
 #include "tbb/tbb.h"
 #include "common/sys/sysinfo.h"
+#include "shading/shading.h"
 
 #include <vector>
 #include <iostream>
@@ -55,15 +56,19 @@ void SetTilePixel(Tile& tile,
 				  uint32_t y) noexcept;
 
 void RenderTiles(const RTCScene& embreeScene,
+				 OSL::ShadingSystem* oslShadingSys,
 				 color* __restrict buffer,
 				 const std::vector<Object>& sceneObjects,
+				 const std::vector<OSL::ShaderGroupRef>& shaders,
 				 const uint64_t& sample, 
 				 const Tiles& tiles, 
 				 const Camera& cam, 
 				 const Settings& settings) noexcept;
 
 void RenderTile(const RTCScene& embreeScene,
+				OSL::ShadingSystem* oslShadingSys,
 				const std::vector<Object>& sceneObjects,
+				const std::vector<OSL::ShaderGroupRef>& shaders,
 				const uint64_t& sample,
 				const Tile& tile,
 				const Camera& cam,
@@ -129,10 +134,12 @@ void RenderProgressive(const RTCScene& embreeScene,
 
 
 embree::Vec3f Pathtrace(const RTCScene& embreeScene,
+						OSL::ShadingSystem* oslShadingSys,
+						OSL::ShadingContext* oslCtx,	
 					    const std::vector<Object>& sceneObjects,
+						const std::vector<OSL::ShaderGroupRef>& shaders,
 						const uint64_t seed,
-						embree::Vec3f& hitPosition,
-						embree::Vec3f& hitNormal,
+						OSL::ShaderGlobals& globals,
 						uint32_t& id,
 						RTCIntersectContext& context) noexcept;
 

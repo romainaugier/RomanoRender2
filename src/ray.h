@@ -8,31 +8,31 @@
 #include <stdint.h>
 
 // Helper functions for rays
-__forceinline void SetRayPosition(RTCRayHit* rayhit, const embree::Vec3f& position) noexcept { rayhit->ray.org_x = position.x; rayhit->ray.org_y = position.y; rayhit->ray.org_z = position.z; }
-__forceinline void SetRayDirection(RTCRayHit* rayhit, const embree::Vec3f& direction) noexcept { rayhit->ray.dir_x = direction.x; rayhit->ray.dir_y = direction.y; rayhit->ray.dir_z = direction.z; }
+__forceinline void SetRayPosition(RTCRayHit& rayhit, const embree::Vec3f& position) noexcept { rayhit.ray.org_x = position.x; rayhit.ray.org_y = position.y; rayhit.ray.org_z = position.z; }
+__forceinline void SetRayDirection(RTCRayHit& rayhit, const embree::Vec3f& direction) noexcept { rayhit.ray.dir_x = direction.x; rayhit.ray.dir_y = direction.y; rayhit.ray.dir_z = direction.z; }
 
-__forceinline void SetRay(RTCRayHit* rayhit, const embree::Vec3f& position, const embree::Vec3f& direction, float t) noexcept
+__forceinline void SetRay(RTCRayHit& rayhit, const embree::Vec3f& position, const embree::Vec3f& direction, float t) noexcept
 {
 	SetRayPosition(rayhit, position);
 	SetRayDirection(rayhit, direction);
-	rayhit->ray.tnear = 0.0001f;
-	rayhit->ray.tfar = t;
-	rayhit->ray.mask = -1;
-	rayhit->ray.flags = 0;
-	rayhit->hit.geomID = RTC_INVALID_GEOMETRY_ID;
-	rayhit->hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
+	rayhit.ray.tnear = 0.0001f;
+	rayhit.ray.tfar = t;
+	rayhit.ray.mask = -1;
+	rayhit.ray.flags = 0;
+	rayhit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+	rayhit.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
 }
 
-__forceinline embree::Vec3f GetRayHitPosition(RTCRayHit* rayhit) noexcept
+__forceinline embree::Vec3f GetRayHitPosition(RTCRayHit& rayhit) noexcept
 {
-	return embree::Vec3f(rayhit->ray.org_x + rayhit->ray.dir_x * rayhit->ray.tfar,
-		rayhit->ray.org_y + rayhit->ray.dir_y * rayhit->ray.tfar,
-		rayhit->ray.org_z + rayhit->ray.dir_z * rayhit->ray.tfar);
+	return embree::Vec3f(rayhit.ray.org_x + rayhit.ray.dir_x * rayhit.ray.tfar,
+		rayhit.ray.org_y + rayhit.ray.dir_y * rayhit.ray.tfar,
+		rayhit.ray.org_z + rayhit.ray.dir_z * rayhit.ray.tfar);
 }
 
-__forceinline embree::Vec3f GetRayHitNormal(RTCRayHit* rayhit) noexcept { return embree::Vec3f(rayhit->hit.Ng_x, rayhit->hit.Ng_y, rayhit->hit.Ng_z); }
+__forceinline embree::Vec3f GetRayHitNormal(RTCRayHit& rayhit) noexcept { return embree::Vec3f(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z); }
 
-__forceinline void PostIntersectCleanup(RTCRayHit* rayhit) noexcept
+__forceinline void PostIntersectCleanup(RTCRayHit& rayhit) noexcept
 {
 	const embree::Vec3f hitN = GetRayHitNormal(rayhit);
 	const embree::Vec3f hitP = GetRayHitPosition(rayhit);
@@ -40,18 +40,18 @@ __forceinline void PostIntersectCleanup(RTCRayHit* rayhit) noexcept
 	SetRay(rayhit, hitP, hitN, 10000.0f);
 }
 
-__forceinline void PostIntersectPrep(RTCRayHit* rayhit, const embree::Vec3f& direction, float tnear, float tfar) noexcept
+__forceinline void PostIntersectPrep(RTCRayHit& rayhit, const embree::Vec3f& direction, float tnear, float tfar) noexcept
 {
 	const embree::Vec3f hitP = GetRayHitPosition(rayhit);
 
 	SetRayPosition(rayhit, hitP);
 	SetRayDirection(rayhit, direction);
-	rayhit->ray.tnear = tnear;
-	rayhit->ray.tfar = tfar;
-	rayhit->ray.mask = -1;
-	rayhit->ray.flags = 0;
-	rayhit->hit.geomID = RTC_INVALID_GEOMETRY_ID;
-	rayhit->hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
+	rayhit.ray.tnear = tnear;
+	rayhit.ray.tfar = tfar;
+	rayhit.ray.mask = -1;
+	rayhit.ray.flags = 0;
+	rayhit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+	rayhit.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
 }
 
 // Helper functions to set rays 8

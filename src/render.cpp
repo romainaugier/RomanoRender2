@@ -71,8 +71,10 @@ void SetTilePixel(Tile& tile, const embree::Vec3f& color, uint32_t x, uint32_t y
 }
 
 void RenderTiles(const RTCScene& embreeScene, 
+                 OSL::ShadingSystem* oslShadingSys,
                  color* __restrict buffer,
                  const std::vector<Object>& sceneObjects,
+                 const std::vector<OSL::ShaderGroupRef>& shaders,
                  const uint64_t& sample,
                  const Tiles& tiles, 
                  const Camera& cam, 
@@ -84,7 +86,7 @@ void RenderTiles(const RTCScene& embreeScene,
         {
             for (size_t t = r.begin(), t_end = r.end(); t < t_end; t++)
             {
-                RenderTile(embreeScene, sceneObjects, sample, tiles.tiles[t], cam, settings);
+                RenderTile(embreeScene, oslShadingSys, sceneObjects, shaders, sample, tiles.tiles[t], cam, settings);
 
                 for (int y = 0; y < tiles.tiles[t].size_y; y++)
                     {
@@ -101,12 +103,21 @@ void RenderTiles(const RTCScene& embreeScene,
 }
 
 void RenderTile(const RTCScene& embreeScene,
+                OSL::ShadingSystem* oslShadingSys,
                 const std::vector<Object>& sceneObjects,
+                const std::vector<OSL::ShaderGroupRef>& shaders,
                 const uint64_t& sample,
                 const Tile& tile,
                 const Camera& cam,
                 const Settings& settings) noexcept
 {
+    // Reset the tile pixels
+    memset(tile.pixels, 0.0f, sizeof(color) * tile.size_x * tile.size_y);
+    
+    // Initialize OSL thread context and infos
+    OSL::PerThreadInfo* info = oslShadingSys->create_thread_info();
+    OSL::ShadingContext* ctx = oslShadingSys->get_context(info);
+    
     // Generate rays
     int seeds[512];
 
@@ -170,26 +181,41 @@ void RenderTile(const RTCScene& embreeScene,
         {
             if (tile.rayPacket.rayHit.hit.geomID[idx] != RTC_INVALID_GEOMETRY_ID)
             {
-                const uint32_t hitGeomID = tile.rayPacket.rayHit.hit.geomID[idx];
+                uint32_t hitGeomID = tile.rayPacket.rayHit.hit.geomID[idx];
                 const uint32_t hitPrimID = tile.rayPacket.rayHit.hit.primID[idx];
                 const float hitU = tile.rayPacket.rayHit.hit.u[idx];
                 const float hitV = tile.rayPacket.rayHit.hit.v[idx];
 
+                embree::Vec3f hitPosition = embree::Vec3f(tile.rayPacket.rayHit.ray.org_x[idx],
+                                                          tile.rayPacket.rayHit.ray.org_y[idx],
+                                                          tile.rayPacket.rayHit.ray.org_z[idx]) +
+                                                          tile.rayPacket.rayHit.ray.tfar[idx] *
+                                                          embree::Vec3f(tile.rayPacket.rayHit.ray.dir_x[idx],
+                                                              tile.rayPacket.rayHit.ray.dir_y[idx],
+                                                              tile.rayPacket.rayHit.ray.dir_z[idx]);
+
                 embree::Vec3f hitNormal;
-                
                 rtcInterpolate1(sceneObjects[hitGeomID].geometry, hitPrimID, hitU, hitV, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, (float*)&hitNormal, nullptr, nullptr, 3);
 
-                embree::Vec3f output = (hitNormal + embree::Vec3f(0.5f)) / 2.0f;
+                embree::Vec2f hitUv;
+                rtcInterpolate1(sceneObjects[hitGeomID].geometry, hitPrimID, hitU, hitV, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, (float*)&hitUv, nullptr, nullptr, 2);
+
+                OSL::ShaderGlobals globals;
+                GlobalsFromHit(globals, hitPosition, hitNormal, hitUv);
+
+                const embree::Vec3f output = Pathtrace(embreeScene,
+                                                       oslShadingSys, 
+                                                       ctx,
+                                                       sceneObjects, 
+                                                       shaders, 
+                                                       sample * x * y,
+                                                       globals, 
+                                                       hitGeomID, 
+                                                       context);
 
                 tile.pixels[(x - tile.x_start) + (y - tile.y_start) * tile.size_y].R = output.x;
                 tile.pixels[(x - tile.x_start) + (y - tile.y_start) * tile.size_y].G = output.y;
                 tile.pixels[(x - tile.x_start) + (y - tile.y_start) * tile.size_y].B = output.z;
-            }
-            else
-            {
-                tile.pixels[(x - tile.x_start) + (y - tile.y_start) * tile.size_y].R = 0.0f;
-                tile.pixels[(x - tile.x_start) + (y - tile.y_start) * tile.size_y].G = 0.0f;
-                tile.pixels[(x - tile.x_start) + (y - tile.y_start) * tile.size_y].B = 0.0f;
             }
 
             idx++;
@@ -209,6 +235,10 @@ void RenderTile(const RTCScene& embreeScene,
     //        idx++;
     //    }
     //}
+
+    // Release OSL context and info for this tile
+    oslShadingSys->release_context(ctx);
+    oslShadingSys->destroy_thread_info(info);
 }
 
 void RenderTilePixel(const RTCScene& embreeScene,
@@ -452,10 +482,12 @@ void RenderProgressive(const RTCScene& embreeScene,
 }
 
 embree::Vec3f Pathtrace(const RTCScene& embreeScene,
+                        OSL::ShadingSystem* oslShadingSys,
+                        OSL::ShadingContext* oslCtx,
                         const std::vector<Object>& sceneObjects,
+                        const std::vector<OSL::ShaderGroupRef>& shaders,
                         const uint64_t seed, 
-                        embree::Vec3f& hitPosition,
-                        embree::Vec3f& hitNormal,
+                        OSL::ShaderGlobals& globals,
                         uint32_t& id,
                         RTCIntersectContext& context) noexcept
 {
@@ -467,6 +499,7 @@ embree::Vec3f Pathtrace(const RTCScene& embreeScene,
     memcpy(&toFloat, &floatAddr, 4);
 
     RTCRayHit rayhit;
+    float pdf;
 
     uint32_t hitGeomID = id;
     uint32_t hitPrimID;
@@ -476,21 +509,33 @@ embree::Vec3f Pathtrace(const RTCScene& embreeScene,
 
     while (true)
     {
-        if (bounce > 6)
+        if (bounce > 3)
         {
             break;
         }
 
-        int seeds[4] = { seed + bounce + 422 * id, seed + bounce + 4332 * id, seed + bounce + 938 * id, seed + bounce + 2345 * id };
-        float randoms[4];
+        int seeds[8];
 
-        ispc::randomFloatWangHash(seeds, randoms, toFloat, 4);
+        // Initialize seeds for random number generation
+        for (int i = 0; i < 8; i++) seeds[i] = seed + bounce + (i + 1);
+
+        float randoms[8];
+
+        ispc::randomFloatWangHash(seeds, randoms, toFloat, 8);
+
+        // Execute OSL Shader
+        ShadingResult result;
+        oslShadingSys->execute(oslCtx, *shaders[0], globals);
+
+        // Process resulting closure
+        ProcessClosure(result, globals.Ci);
 
         // Sample Light
         RTCRay shadow;
             
-        embree::Vec3f rayOrig = hitPosition + hitNormal * 0.001f;
-        embree::Vec3f rayDir = SampleHemisphere(hitNormal, randoms);
+        embree::Vec3f rayOrig = globals.P + globals.N * 0.001f;
+        embree::Vec3f rayDir;
+        result.bsdf.Sample(globals, randoms[1], randoms[2], randoms[3], rayDir, pdf);
             
         shadow.org_x = rayOrig.x;
         shadow.org_y = rayOrig.y;
@@ -507,19 +552,20 @@ embree::Vec3f Pathtrace(const RTCScene& embreeScene,
 
         rtcOccluded1(embreeScene, &context, &shadow);
 
-            
         if (embree::finite(shadow.tfar))
         {
-            output += tmp * 1.5f * embree::max(0.0f, embree::dot(rayDir, hitNormal)) * INVPI;
+            output += tmp * result.bsdf.Eval(globals, rayDir, randoms[0]);
         }
 
-        tmp *= 0.75f;
+        tmp = tmp * result.bsdf.Eval(globals, rayDir, randoms[4]);
 
         float rr = embree::min(0.95f, (0.2126f * tmp.x + 0.7152f * tmp.y + 0.0722f * tmp.z));
-        if (rr < randoms[3]) break;
+        if (rr < randoms[0]) break;
         else tmp /= rr;
 
-        SetRay(&rayhit, hitPosition, SampleHemisphere(hitNormal, &randoms[2]), 10000.0f);
+        result.bsdf.Sample(globals, randoms[5], randoms[6], randoms[7], rayDir, pdf);
+
+        SetRay(rayhit, rayOrig, rayDir, 10000.0f);
 
         rtcIntersect1(embreeScene, &context, &rayhit);
 
@@ -530,11 +576,19 @@ embree::Vec3f Pathtrace(const RTCScene& embreeScene,
 
         hitGeomID = rayhit.hit.geomID;
         hitPrimID = rayhit.hit.primID;
+
         hitU = rayhit.hit.u;
         hitV = rayhit.hit.v;
-        hitPosition = embree::Vec3f(rayhit.ray.org_x, rayhit.ray.org_y, rayhit.ray.org_z) + rayhit.ray.tfar * embree::Vec3f(rayhit.ray.dir_x, rayhit.ray.dir_y, rayhit.ray.dir_z);
-        rtcInterpolate1(sceneObjects[hitGeomID].geometry, hitPrimID, hitU, hitV, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, (float*)&hitNormal, nullptr, nullptr, 3);
-        // hitNormal = embree::normalize(embree::Vec3f(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z));
+
+        globals.P = embree::Vec3f(rayhit.ray.org_x, rayhit.ray.org_y, rayhit.ray.org_z) + rayhit.ray.tfar * embree::Vec3f(rayhit.ray.dir_x, rayhit.ray.dir_y, rayhit.ray.dir_z);
+        
+        rtcInterpolate1(sceneObjects[hitGeomID].geometry, hitPrimID, hitU, hitV, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, (float*)&globals.N, nullptr, nullptr, 3);
+
+        embree::Vec2f hitUv;
+        rtcInterpolate1(sceneObjects[hitGeomID].geometry, hitPrimID, hitU, hitV, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, (float*)&hitUv, nullptr, nullptr, 2);
+
+        globals.u = hitUv.x;
+        globals.v = hitUv.y;
 
         bounce++;
     }

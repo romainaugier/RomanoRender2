@@ -4,7 +4,7 @@
 void GlobalsFromHit(OSL::ShaderGlobals& shaderGlobals,
 					const embree::Vec3f& hitPosition,
 					const embree::Vec3f& hitNormal,
-					const embree::Vec3f& hitUv) noexcept
+					const embree::Vec2f& hitUv) noexcept
 {
 	shaderGlobals.P = hitPosition;
 	shaderGlobals.N = hitNormal;
@@ -42,14 +42,14 @@ void RegisterClosures(ShadingSystem* oslShadingSys) noexcept
     enum { MaxParams = 32 };
 
     struct BuiltinClosures {
-        const char* name;
+        OSL::string_view name;
         int id;
         OSL::ClosureParam params[MaxParams];
     };
 
     BuiltinClosures builtins[] = { {"diffuse", DIFFUSE_ID, { CLOSURE_VECTOR_PARAM(DiffuseParams, N), CLOSURE_FINISH_PARAM(DiffuseParams) } } };
 
-    for (int i = 0; builtins[i].name; i++) {
+    for (int i = 0; i < NUM_CLOSURES; i++) {
         oslShadingSys->register_closure(
             builtins[i].name,
             builtins[i].id,
@@ -63,14 +63,13 @@ OSL_NAMESPACE_EXIT
 struct Diffuse final : public BSDF, DiffuseParams {
     Diffuse(const DiffuseParams& params) : BSDF(), DiffuseParams(params) { }
 
-    virtual float eval(const OSL::ShaderGlobals& /*sg*/, const OSL::Vec3& wi, float& pdf) const {
+    virtual float Eval(const OSL::ShaderGlobals& /*sg*/, const OSL::Vec3& wi, float& pdf) const {
         pdf = embree::max(dot(N, wi), 0.0f) * float(embree::one_over_pi);
         return 1.0f;
     }
 
-    virtual float sample(const OSL::ShaderGlobals& /*sg*/, float rx, float ry, float /*rz*/, OSL::Dual2<OSL::Vec3>& wi, float& pdf) const {
-        embree::Vec3f out_dir = SampleHemisphere(N, rx, ry);
-        wi = out_dir;
+    virtual float Sample(const OSL::ShaderGlobals& /*sg*/, float rx, float ry, float rz, OSL::Vec3& wi, float& pdf) const {
+        wi = SampleHemisphere(N, rx, ry, rz);
         return 1.0f;
     }
 };
@@ -107,4 +106,10 @@ void ProcessClosure(ShadingResult& result,
             break;
         }
     }
+}
+
+void ProcessClosure(ShadingResult& result,
+                    const OSL::ClosureColor* closure) noexcept
+{
+    ProcessClosure(result, closure, OSL::Color3(1.0f));
 }

@@ -217,7 +217,7 @@ inline void randomFloatPcg8(float* randoms, unsigned int* state)
     _mm256_storeu_ps(randoms, floats);
 }
 
-inline embree::Vec3f SampleHemisphere(const embree::Vec3f& hit_normal, const float random_x, const float random_y)
+inline embree::Vec3f SampleHemisphere(const embree::Vec3f& hit_normal, const float random_x, const float random_y, const float random_z)
 {
     float signZ = (hit_normal.z >= 0.0f) ? 1.0f : -1.0f;
     float a = -1.0f / (signZ + hit_normal.z);
@@ -227,7 +227,7 @@ inline embree::Vec3f SampleHemisphere(const embree::Vec3f& hit_normal, const flo
 
     float phi = 2.0f * float(embree::pi) * random_x;
     float cosTheta = embree::sqrt(random_y);
-    float sinTheta = embree::sqrt(1.0f - random_y);
+    float sinTheta = embree::sqrt(1.0f - random_z);
 
     return embree::normalize(((b1 * embree::cos(phi) + b2 * embree::sin(phi)) * cosTheta + hit_normal * sinTheta));
 }

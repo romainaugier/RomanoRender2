@@ -26,7 +26,7 @@ int application(int argc, char** argv)
     _MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_ON);
 
     // Setup embree scene
-    std::string path = "D:/dev/Utils/Models/simle_scene.obj";
+    std::string path = "D:/dev/Utils/Models/scene_x_wing.obj";
     
     RTCDevice embreeDevice = initializeDevice();
     RTCScene embreeScene = rtcNewScene(embreeDevice);
@@ -57,26 +57,17 @@ int application(int argc, char** argv)
     OSL::ustring outputs[] = { OSL::ustring("Cout") };
     oslShadingSys->attribute("renderer_outputs", OSL::TypeDesc(OSL::TypeDesc::STRING, 1), &outputs);
 
+    // Registering closures in the OSL shading system
+    OSL::RegisterClosures(oslShadingSys);
+
+    // Load shaders
+    std::vector<OSL::ShaderGroupRef> shaders;
+
     OSL::ShaderGroupRef group = oslShadingSys->ShaderGroupBegin("test");
-    oslShadingSys->Shader(*group, "surface", "D:/dev/RomanoRender2/src/shaders/matte.oso", nullptr);
+    oslShadingSys->Shader(*group, "surface", "D:/dev/RomanoRender2/src/shaders/uv.oso", nullptr);
     oslShadingSys->ShaderGroupEnd(*group);
 
-    OSL::PerThreadInfo* info = oslShadingSys->create_thread_info();
-    OSL::ShadingContext* ctx = oslShadingSys->get_context(info);
-
-    OSL::ShaderGlobals globals;
-    globals.u = 0.5f;
-    globals.v = 0.5f;
-
-    globals.N = OSL::Vec3(0.0f, 0.0f, 1.0f);
-
-    if (oslShadingSys->execute(ctx, *group, globals))
-    {
-        std::cout << "[DEBUG] : OSL Shader executed successfully" << "\n";
-    }
-
-    oslShadingSys->release_context(ctx);
-    oslShadingSys->destroy_thread_info(info);
+    shaders.push_back(group);
 
     // Setup window
     glfwSetErrorCallback(glfw_error_callback);
@@ -254,7 +245,7 @@ int application(int argc, char** argv)
 
             if (doTiles)
             {
-                RenderTiles(embreeScene, accumBuffer, objects, ImGui::GetFrameCount(), tiles, cam, settings);
+                RenderTiles(embreeScene, oslShadingSys, accumBuffer, objects, shaders, ImGui::GetFrameCount(), tiles, cam, settings);
                 // TilesToBuffer(accumBuffer, tiles, settings);
             }
             else
@@ -311,7 +302,6 @@ int application(int argc, char** argv)
                 if (doTiles) doTiles = false;
                 else doTiles = true;
             }
-
             ImGui::End();
         }
         ImGui::PopStyleColor();

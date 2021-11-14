@@ -53,6 +53,33 @@ public:
                               OSL::TypeDesc type,
                               void* renderstate);
 
+    virtual bool trace(TraceOpt& options, OSL::ShaderGlobals* sg,
+                       const OSL::Vec3& P, const OSL::Vec3& dPdx,
+                       const OSL::Vec3& dPdy, const OSL::Vec3& R,
+                       const OSL::Vec3& dRdx, const OSL::Vec3& dRdy);
+
+    virtual bool transform_points(OSL::ShaderGlobals* sg,
+                                  OSL::ustring from, OSL::ustring to, float time,
+                                  const OSL::Vec3* Pin, OSL::Vec3* Pout, int npoints,
+                                  OSL::TypeDesc::VECSEMANTICS vectype);
+
+    virtual bool texture3d(OSL::ustring filename, TextureHandle* texture_handle,
+                           TexturePerthread* texture_thread_info,
+                           OSL::TextureOpt& options, OSL::ShaderGlobals* sg,
+                           const OSL::Vec3& P, const OSL::Vec3& dPdx, const OSL::Vec3& dPdy,
+                           const OSL::Vec3& dPdz, int nchannels,
+                           float* result, float* dresultds,
+                           float* dresultdt, float* dresultdr,
+                           OSL::ustring* errormessage);
+
+    virtual bool environment(OSL::ustring filename, TextureHandle* texture_handle,
+                             TexturePerthread* texture_thread_info,
+                             OSL::TextureOpt& options, OSL::ShaderGlobals* sg,
+                             const OSL::Vec3& R, const OSL::Vec3& dRdx, const OSL::Vec3& dRdy,
+                             int nchannels, float* result,
+                             float* dresultds, float* dresultdt,
+                             OSL::ustring* errormessage);
+
     virtual int pointcloud_search(OSL::ShaderGlobals* sg,
                                   OSL::ustring filename,
                                   const OSL::Vec3& center,
@@ -70,28 +97,12 @@ public:
                                OSL::TypeDesc attr_type,
                                void* out_data);
 
+    virtual bool pointcloud_write(OSL::ShaderGlobals* sg,
+                                  OSL::ustring filename, const OSL::Vec3& pos,
+                                  int nattribs, const OSL::ustring* names,
+                                  const OSL::TypeDesc* types,
+                                  const void** data);
+
 private:
     OSL::ShadingSystem* shadingSys;
 };
-
-// OSL Utilities
-
-__forceinline OSL::Vec3 EmbreeVec3toOslVec3(embree::Vec3f& v) noexcept
-{
-    return OSL::Vec3(v.x, v.y, v.z);
-}
-
-__forceinline OSL::Vec3 EmbreeVec3toOslVec3(embree::Vec3f v) noexcept
-{
-    return OSL::Vec3(v.x, v.y, v.z);
-}
-
-__forceinline embree::Vec3f OslVec3ToEmbreeVec3(OSL::Vec3& v) noexcept
-{
-    return embree::Vec3f(v.x, v.y, v.z);
-}
-
-__forceinline embree::Vec3f OslVec3ToEmbreeVec3(OSL::Vec3 v) noexcept
-{
-    return embree::Vec3f(v.x, v.y, v.z);
-}

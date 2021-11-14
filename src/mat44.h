@@ -4,7 +4,6 @@
 #define MATRIX
 
 #include "common/math/vec3.h"
-#include "maths.h"
 
 struct mat44
 {
@@ -67,8 +66,8 @@ inline void set_rotation(mat44& m, const embree::Vec3f& r) noexcept
 
     // rotate x
     mat44 rx = mat44();
-    float sinTheta = sin(deg2rad(r.x));
-    float cosTheta = cos(deg2rad(r.x));
+    float sinTheta = sin(embree::deg2rad(r.x));
+    float cosTheta = cos(embree::deg2rad(r.x));
 
     rx[1][1] = cosTheta;
     rx[1][2] = -sinTheta;
@@ -78,8 +77,8 @@ inline void set_rotation(mat44& m, const embree::Vec3f& r) noexcept
 
     // rotate y
     mat44 ry = mat44();
-    sinTheta = sin(deg2rad(r.y));
-    cosTheta = cos(deg2rad(r.y));
+    sinTheta = sin(embree::deg2rad(r.y));
+    cosTheta = cos(embree::deg2rad(r.y));
 
     ry[0][0] = cosTheta;
     ry[0][2] = sinTheta;
@@ -88,8 +87,8 @@ inline void set_rotation(mat44& m, const embree::Vec3f& r) noexcept
 
     // rotate z
     mat44 rz = mat44();
-    sinTheta = sin(deg2rad(r.z));
-    cosTheta = cos(deg2rad(r.z));
+    sinTheta = sin(embree::deg2rad(r.z));
+    cosTheta = cos(embree::deg2rad(r.z));
 
     rz[0][0] = cosTheta;
     rz[0][1] = -sinTheta;

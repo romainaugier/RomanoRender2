@@ -1,0 +1,13 @@
+// RomanoRender Uv Visualiser Shader
+
+surface
+uv
+	[[ string help = "Lambertian Uv visualiser shader" ]]
+(
+	color col1 = color(0.75, 0.75, 0.25),
+	color col2 = color(0.25, 0.25, 0.75),
+)
+{
+	float n = noise("uperlin", P * 10);
+	Ci = color(n) * diffuse(N);
+}

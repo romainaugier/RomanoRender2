@@ -68,6 +68,45 @@ bool Renderer::has_userdata(OSL::ustring name,
     return false;
 }
 
+bool Renderer::trace(TraceOpt& options, OSL::ShaderGlobals* sg,
+                     const OSL::Vec3& P, const OSL::Vec3& dPdx,
+                     const OSL::Vec3& dPdy, const OSL::Vec3& R,
+                     const OSL::Vec3& dRdx, const OSL::Vec3& dRdy)
+{
+    return false;
+}
+
+bool Renderer::transform_points(OSL::ShaderGlobals* sg,
+                                OSL::ustring from, OSL::ustring to, float time,
+                                const OSL::Vec3* Pin, OSL::Vec3* Pout, int npoints,
+                                OSL::TypeDesc::VECSEMANTICS vectype)
+{
+    return false;
+}
+
+bool Renderer::texture3d(OSL::ustring filename, TextureHandle* texture_handle,
+                         TexturePerthread* texture_thread_info,
+                         OSL::TextureOpt& options, OSL::ShaderGlobals* sg,
+                         const OSL::Vec3& P, const OSL::Vec3& dPdx, const OSL::Vec3& dPdy,
+                         const OSL::Vec3& dPdz, int nchannels,
+                         float* result, float* dresultds,
+                         float* dresultdt, float* dresultdr,
+                         OSL::ustring* errormessage)
+{
+    return false;
+}
+
+bool Renderer::environment(OSL::ustring filename, TextureHandle* texture_handle,
+                           TexturePerthread* texture_thread_info,
+                           OSL::TextureOpt& options, OSL::ShaderGlobals* sg,
+                           const OSL::Vec3& R, const OSL::Vec3& dRdx, const OSL::Vec3& dRdy,
+                           int nchannels, float* result,
+                           float* dresultds, float* dresultdt,
+                           OSL::ustring* errormessage)
+{
+    return false;
+}
+
 int Renderer::pointcloud_search(OSL::ShaderGlobals* sg,
                                 OSL::ustring filename,
                                 const OSL::Vec3& center,
@@ -89,4 +128,13 @@ int Renderer::pointcloud_get(OSL::ustring filename,
                              void* out_data)
 {
     return 0;
+}
+
+bool Renderer::pointcloud_write(OSL::ShaderGlobals* sg,
+                                OSL::ustring filename, const OSL::Vec3& pos,
+                                int nattribs, const OSL::ustring* names,
+                                const OSL::TypeDesc* types,
+                                const void** data)
+{
+    return false;
 }
