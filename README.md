@@ -46,10 +46,12 @@ Soon there will be a building system with [CMAKE](https://github.com/Kitware/CMa
   - :x: USD (I know that's a big boy)
   - :x: Custom scenefile format to save/load scenes
   - :x: Output to any image file format with OpenImageIO
+  - ...
 
 - Interface :
   - :x: Node-Based RenderGraph
   - :x: Text Editor with syntax highlighting for OSL Shaders 
+  - ...
 
 # Showcase
 
