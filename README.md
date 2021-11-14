@@ -1,6 +1,6 @@
 # RomanoRender2
 
-RomanoRender2 is the second iteration of a pathtracer written in C++ and OSL which aims to help me learn rendering, maths, C++, software engineering and more about computer graphics in general.
+RomanoRender2 is the second iteration of a pathtracer written in C++ and OSL which aims to help me learn rendering, maths, C++, software engineering and more about computer graphics in general (and also because I want to make beautiful images).
 
 It relies on [Embree](https://github.com/embree/embree) for geometry intersection and its common library, [Open Shading Language](https://github.com/AcademySoftwareFoundation/OpenShadingLanguage) for shading, [TBB](https://github.com/oneapi-src/oneTBB) for tasking and multithreading and [ImGui](https://github.com/ocornut/imgui) for the interface.
 
