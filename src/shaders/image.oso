@@ -1,0 +1,29 @@
+OpenShadingLanguage 1.00
+# Compiled by oslc 1.11.3
+# options: -O2
+shader image	%meta{string,help,"Texture lookup"} 
+param	string	filename	""		%meta{string,help,"Texture filename"}  %read{2147483647,-1} %write{2147483647,-1}
+param	float	s	0		%meta{string,help,"s coordinate for the lookup"}  %read{2,2} %write{0,0} %derivs %initexpr
+param	float	t	0		%meta{string,help,"t coordinate for the lookup"}  %read{2,2} %write{1,1} %derivs %initexpr
+param	float	sblur	0		%meta{string,help,"Blur in the s direction"} %meta{float,min,0} %meta{float,max,1}  %read{2147483647,-1} %write{2147483647,-1}
+param	float	tblur	0		%meta{string,help,"Blur in the s direction"} %meta{float,min,0} %meta{float,max,1}  %read{2147483647,-1} %write{2147483647,-1}
+param	string	swrap	"periodic"		%meta{string,help,"Wrap mode for the s direction"} %meta{string,widget,"popup"} %meta{string,options,"default|black|clamp|periodic|mirror"}  %read{2147483647,-1} %write{2147483647,-1}
+param	string	twrap	"periodic"		%meta{string,help,"Wrap mode for the t direction"} %meta{string,widget,"popup"} %meta{string,options,"default|black|clamp|periodic|mirror"}  %read{2147483647,-1} %write{2147483647,-1}
+oparam	color	Cout	0 0 0		%meta{string,help,"Output color"}  %read{2147483647,-1} %write{2147483647,-1}
+global	normal	N	%read{3,3} %write{2147483647,-1}
+global	float	u	%read{0,0} %write{2147483647,-1} %derivs
+global	float	v	%read{1,1} %write{2147483647,-1} %derivs
+global	closure color	Ci	%read{2147483647,-1} %write{4,4}
+local	color	texColor	%read{4,4} %write{2,2}
+const	string	$const1	"D:/dev/Utils/Renders/ggx_1.png"		%read{2,2} %write{2147483647,-1}
+temp	closure color	$tmp1	%read{4,4} %write{3,3}
+const	string	$const2	"diffuse"		%read{3,3} %write{2147483647,-1}
+code s
+	assign		s u 	%filename{"image.osl"} %line{12} %argrw{"wr"}
+code t
+	assign		t v 	%filename{"image.osl"} %line{14} %argrw{"wr"}
+code ___main___
+	texture		texColor $const1 s t 	%filename{"image.osl"} %line{34} %argrw{"wrrr"} %argderivs{2,3}
+	closure		$tmp1 $const2 N 	%line{35} %argrw{"wrr"}
+	mul		Ci $tmp1 texColor 	%argrw{"wrr"}
+	end

@@ -26,7 +26,7 @@ struct CompositeBSDF {
 
     OSL::Color3 Eval(const OSL::ShaderGlobals& sg, const OSL::Vec3& wi, float random) const 
     {
-        uint8_t bsdfIndex = embree::floor(random * (numBsdfs - 1));
+        uint8_t bsdfIndex = embree::max((int)embree::floor(random * (numBsdfs - 1)), 0);
         float bsdf_pdf;
 
         return weights[bsdfIndex] * bsdfs[bsdfIndex]->Eval(sg, wi, bsdf_pdf);
@@ -34,7 +34,7 @@ struct CompositeBSDF {
 
     OSL::Color3 Sample(const OSL::ShaderGlobals& sg, float rx, float ry, float rz, OSL::Vec3& wi, float& pdf) const 
     {
-        uint8_t bsdfIndex = embree::floor(rz * (numBsdfs - 1));
+        uint8_t bsdfIndex = embree::max((int)embree::floor(rz * (numBsdfs - 1)), 0);
         return weights[bsdfIndex] * bsdfs[bsdfIndex]->Sample(sg, rx, ry, rz, wi, pdf);
     }
 

@@ -7,7 +7,7 @@ param	color	col2	0.25 0.25 0.75		%read{2147483647,-1} %write{2147483647,-1}
 global	point	P	%read{0,0} %write{2147483647,-1}
 global	normal	N	%read{2,2} %write{2147483647,-1}
 global	closure color	Ci	%read{2147483647,-1} %write{4,4}
-local	float	n	%read{3,3} %write{1,1}
+local	float	col	%read{3,3} %write{1,1}
 const	string	$const1	"uperlin"		%read{1,1} %write{2147483647,-1}
 temp	point	$tmp1	%read{1,1} %write{0,0}
 const	float	$const3	10		%read{0,0} %write{2147483647,-1}
@@ -16,8 +16,8 @@ const	string	$const4	"diffuse"		%read{2,2} %write{2147483647,-1}
 temp	color	$tmp3	%read{4,4} %write{3,3}
 code ___main___
 	mul		$tmp1 P $const3 	%filename{"uv.osl"} %line{11} %argrw{"wrr"}
-	noise		n $const1 $tmp1 	%argrw{"wrr"}
+	noise		col $const1 $tmp1 	%argrw{"wrr"}
 	closure		$tmp2 $const4 N 	%line{12} %argrw{"wrr"}
-	assign		$tmp3 n 	%argrw{"wr"}
+	assign		$tmp3 col 	%argrw{"wr"}
 	mul		Ci $tmp2 $tmp3 	%argrw{"wrr"}
 	end

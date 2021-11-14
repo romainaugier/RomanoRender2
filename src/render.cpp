@@ -525,7 +525,7 @@ embree::Vec3f Pathtrace(const RTCScene& embreeScene,
 
         // Execute OSL Shader
         ShadingResult result;
-        oslShadingSys->execute(oslCtx, *shaders[0], globals);
+        if(!oslShadingSys->execute(oslCtx, *shaders[0], globals)) break;
 
         // Process resulting closure
         ProcessClosure(result, globals.Ci);
@@ -535,7 +535,7 @@ embree::Vec3f Pathtrace(const RTCScene& embreeScene,
             
         embree::Vec3f rayOrig = globals.P + globals.N * 0.001f;
         embree::Vec3f rayDir;
-        result.bsdf.Sample(globals, randoms[1], randoms[2], randoms[3], rayDir, pdf);
+        result.bsdf.Sample(globals, randoms[1], randoms[2], randoms[0], rayDir, pdf);
             
         shadow.org_x = rayOrig.x;
         shadow.org_y = rayOrig.y;
@@ -557,7 +557,7 @@ embree::Vec3f Pathtrace(const RTCScene& embreeScene,
             output += tmp * result.bsdf.Eval(globals, rayDir, randoms[0]);
         }
 
-        tmp = tmp * result.bsdf.Eval(globals, rayDir, randoms[4]);
+        tmp = tmp * result.bsdf.Eval(globals, rayDir, randoms[0]);
 
         float rr = embree::min(0.95f, (0.2126f * tmp.x + 0.7152f * tmp.y + 0.0722f * tmp.z));
         if (rr < randoms[0]) break;
