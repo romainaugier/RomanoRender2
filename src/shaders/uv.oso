@@ -2,22 +2,31 @@ OpenShadingLanguage 1.00
 # Compiled by oslc 1.11.3
 # options: -O2
 surface uv	%meta{string,help,"Lambertian Uv visualiser shader"} 
-param	color	col1	0.75 0.75 0.25		%read{2147483647,-1} %write{2147483647,-1}
-param	color	col2	0.25 0.25 0.75		%read{2147483647,-1} %write{2147483647,-1}
+param	color	col1	0.75 0.75 0.25		%read{6,6} %write{2147483647,-1}
+param	color	col2	0.25 0.25 0.75		%read{7,7} %write{2147483647,-1}
 global	point	P	%read{0,0} %write{2147483647,-1}
-global	normal	N	%read{2,2} %write{2147483647,-1}
-global	closure color	Ci	%read{2147483647,-1} %write{4,4}
-local	float	col	%read{3,3} %write{1,1}
-const	string	$const1	"uperlin"		%read{1,1} %write{2147483647,-1}
-temp	point	$tmp1	%read{1,1} %write{0,0}
-const	float	$const3	10		%read{0,0} %write{2147483647,-1}
-temp	closure color	$tmp2	%read{4,4} %write{2,2}
-const	string	$const4	"diffuse"		%read{2,2} %write{2147483647,-1}
-temp	color	$tmp3	%read{4,4} %write{3,3}
+global	normal	N	%read{8,8} %write{2147483647,-1}
+global	closure color	Ci	%read{2147483647,-1} %write{9,9}
+local	color	col	%read{9,9} %write{6,7}
+temp	float	$tmp1	%read{4,4} %write{3,3}
+temp	float	$tmp2	%read{3,3} %write{2,2}
+const	int	$const1	0		%read{0,0} %write{2147483647,-1}
+temp	float	$tmp3	%read{1,1} %write{0,0}
+const	float	$const2	10		%read{1,1} %write{2147483647,-1}
+temp	float	$tmp4	%read{2,2} %write{1,1}
+const	int	$const3	-1		%read{4,4} %write{2147483647,-1}
+temp	int	$tmp5	%read{5,5} %write{4,4}
+temp	closure color	$tmp6	%read{9,9} %write{8,8}
+const	string	$const4	"diffuse"		%read{8,8} %write{2147483647,-1}
 code ___main___
-	mul		$tmp1 P $const3 	%filename{"uv.osl"} %line{11} %argrw{"wrr"}
-	noise		col $const1 $tmp1 	%argrw{"wrr"}
-	closure		$tmp2 $const4 N 	%line{12} %argrw{"wrr"}
-	assign		$tmp3 col 	%argrw{"wr"}
-	mul		Ci $tmp2 $tmp3 	%argrw{"wrr"}
+	compref		$tmp3 P $const1 	%filename{"uv.osl"} %line{11} %argrw{"wrr"}
+	mul		$tmp4 $tmp3 $const2 	%argrw{"wrr"}
+	sin		$tmp2 $tmp4 	%argrw{"wr"}
+	floor		$tmp1 $tmp2 	%argrw{"wr"}
+	gt		$tmp5 $tmp1 $const3 	%argrw{"wrr"}
+	if		$tmp5 7 8 	%argrw{"r"}
+	assign		col col1 	%argrw{"wr"}
+	assign		col col2 	%argrw{"wr"}
+	closure		$tmp6 $const4 N 	%line{12} %argrw{"wrr"}
+	mul		Ci $tmp6 col 	%argrw{"wrr"}
 	end

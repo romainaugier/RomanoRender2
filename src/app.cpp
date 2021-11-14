@@ -26,7 +26,7 @@ int application(int argc, char** argv)
     _MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_ON);
 
     // Setup embree scene
-    std::string path = "D:/dev/Utils/Models/scene_x_wing.obj";
+    std::string path = "D:/dev/Utils/Models/dragon_2_scene.obj";
     
     RTCDevice embreeDevice = initializeDevice();
     RTCScene embreeScene = rtcNewScene(embreeDevice);
@@ -133,9 +133,6 @@ int application(int argc, char** argv)
 
     Tiles tiles;
     GenerateTiles(tiles, settings);
-
-    PixelBatches batches;
-    GeneratePixelBatches(batches, settings);
     
     GLuint render_view_texture;
 
@@ -188,7 +185,7 @@ int application(int argc, char** argv)
         {
             samples = 1;
             renderSeconds = 0.0f;
-            memset(accumBuffer, 0.0f, xres * yres * sizeof(color));
+            // memset(renderBuffer, 0.0f, xres * yres * sizeof(color));
             edited = false;
         }
 
@@ -243,25 +240,7 @@ int application(int argc, char** argv)
         {
             auto start = get_time();
 
-            if (doTiles)
-            {
-                RenderTiles(embreeScene, oslShadingSys, accumBuffer, objects, shaders, ImGui::GetFrameCount(), tiles, cam, settings);
-                // TilesToBuffer(accumBuffer, tiles, settings);
-            }
-            else
-            {
-                RenderProgressive(embreeScene, objects, batches, ImGui::GetFrameCount(), accumBuffer, cam, settings);
-            }
-
-            for (uint32_t y = 0; y < yres; y++)
-            {
-                for (uint32_t x = 0; x < xres; x++)
-                {
-                    renderBuffer[x + ((yres - 1) - y) * xres].R = accumBuffer[x + y * xres].R / static_cast<float>(samples);
-                    renderBuffer[x + ((yres - 1) - y) * xres].G = accumBuffer[x + y * xres].G / static_cast<float>(samples);
-                    renderBuffer[x + ((yres - 1) - y) * xres].B = accumBuffer[x + y * xres].B / static_cast<float>(samples);
-                }
-            }
+            RenderTiles(embreeScene, oslShadingSys, renderBuffer, objects, shaders, samples, ImGui::GetFrameCount(), tiles, cam, settings);
 
             auto end = get_time();
 
@@ -278,7 +257,7 @@ int application(int argc, char** argv)
         glBindFramebuffer(GL_READ_FRAMEBUFFER, myFbo);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // default fbo  
         glBlitFramebuffer(0, 0, xres, yres,
-            0, 0, display_w, display_h, GL_COLOR_BUFFER_BIT, GL_LINEAR); // or GL_NEAREST
+                          0, display_h, display_w, 0, GL_COLOR_BUFFER_BIT, GL_LINEAR); // or GL_NEAREST
 
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
@@ -295,12 +274,6 @@ int application(int argc, char** argv)
             {
                 if (render) render = false;
                 else render = true;
-            }
-            if (ImGui::Button("Tiles"))
-            {
-                edited = true;
-                if (doTiles) doTiles = false;
-                else doTiles = true;
             }
             ImGui::End();
         }
@@ -320,8 +293,10 @@ int application(int argc, char** argv)
         glfwSwapBuffers(window);
     }
 
-    // ReleaseTiles(tiles);
-    ReleasePixelBatches(batches);
+    ReleaseTiles(tiles);
+
+    // Release OSL Shading Systems
+    delete oslShadingSys;
 
     delete[] accumBuffer;
     delete[] renderBuffer;

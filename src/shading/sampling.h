@@ -6,9 +6,6 @@
 #include <limits>
 #include <cstring>
 
-__forceinline float deg2rad(const float deg) { return deg * float(embree::pi) / 180; }
-__forceinline float rad2deg(const float rad) { return rad * 180 / float(embree::pi); }
-
 template <typename T>
 __forceinline T fit(T s, T a1, T a2, T b1, T b2) { return b1 + ((s - a1) * (b2 - b1)) / (a2 - a1); }
 

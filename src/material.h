@@ -1,8 +1,5 @@
 #pragma once
 
-#ifndef MATERIAL
-#define MATERIAL
-
 #include "common/math/vec3.h"
 #include <stdint.h>
 
@@ -18,5 +15,3 @@ struct Material
 		color(col),
 		id(id) {}
 };
-
-#endif

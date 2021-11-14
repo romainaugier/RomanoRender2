@@ -1,8 +1,6 @@
 #pragma once
 
 #include "mat44.h"
-#include "ray.h"
-#include "ispc/ray_generation.h"
 
 struct Camera
 {
@@ -14,7 +12,6 @@ struct Camera
 	embree::Vec3f rotation;
 
 	mat44 transformation_matrix;
-	ispc::mat44 ispcTransformMatrix;
 
 	float focal_length;
 	float fov;
@@ -52,8 +49,6 @@ struct Camera
 		v = v * 2.0F * half_height;
 
 	}
-
-	RTCRayHit GetRay(float s, float t) const noexcept;
 
 	void Update(int& xres, int& yres) noexcept;
 

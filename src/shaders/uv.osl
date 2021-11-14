@@ -8,6 +8,6 @@ uv
 	color col2 = color(0.25, 0.25, 0.75),
 )
 {
-	float col = noise("uperlin", P * 10);
-	Ci = color(col) * diffuse(N);
+	color col = floor(sin(P.x * 10.0)) > -1 ? col1 : col2;
+	Ci = col * diffuse(N);
 }
