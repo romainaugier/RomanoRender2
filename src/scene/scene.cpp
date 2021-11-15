@@ -14,15 +14,15 @@ void Object::SetTransform() noexcept
     set_rotation(rotate_matrix, rotate);
     set_scale(scale_matrix, scale);
 
-    transformation_matrix = translate_matrix * rotate_matrix * scale_matrix;
+    transformationMatrix = translate_matrix * rotate_matrix * scale_matrix;
 
     rVertex* vertices = (rVertex*)rtcGetGeometryBufferData(geometry, RTC_BUFFER_TYPE_VERTEX, 0);
 
-    for (int i = 0; i < vtx_count; i++)
+    for (int i = 0; i < vtxCount; i++)
     {
-        embree::Vec3f temp(orig_positions[i].x, orig_positions[i].y, orig_positions[i].z);
+        embree::Vec3f temp(origPositions[i].x, origPositions[i].y, origPositions[i].z);
 
-        embree::Vec3f temp2 = transform(temp, transformation_matrix);
+        embree::Vec3f temp2 = transform(temp, transformationMatrix);
 
         vertices[i].x = temp2.x;
         vertices[i].y = temp2.y;
@@ -36,8 +36,8 @@ void Object::SetTransform() noexcept
 void Object::Release() noexcept
 {
     // make sure we free the original position pointer to avoid memory leaks
-    free(orig_positions);
-    orig_positions = nullptr;
+    free(origPositions);
+    origPositions = nullptr;
 
     // release the embree geometry 
     rtcReleaseGeometry(geometry);
@@ -108,7 +108,7 @@ RTCGeometry LoadGeometry(objl::Mesh& object, RTCDevice& g_device, std::string& n
 }
 
 
-void LoadObject(RTCDevice& g_device, std::string path, std::vector<Object>& objects) noexcept
+void _LoadObject(RTCDevice& g_device, std::string path, std::unordered_map<uint32_t, Object>& objects) noexcept
 {
     objl::Loader loader;
 
@@ -133,32 +133,33 @@ void LoadObject(RTCDevice& g_device, std::string path, std::vector<Object>& obje
 
             RTCGeometry current_geometry = LoadGeometry(object, g_device, name, orig, vtx_number);
 
-            unsigned int m_id = i;
-            i++;
-
             //#pragma omp critical
             {
-                objects.push_back(Object(m_id, name, current_geometry, orig, vtx_number));
+                objects.emplace(i, Object(i, name, current_geometry, orig, vtx_number));
             }
+            
+            i++;
         }
     }
 
 }
 
 
-void BuildScene(RTCDevice& g_device, RTCScene& g_scene, std::vector<Object>& objects) noexcept
+void _BuildScene(RTCDevice& g_device, RTCScene& g_scene, std::unordered_map<uint32_t, Object>& objects) noexcept
 {
-    for (auto object : objects)
+    for (const auto& [key, object] : objects)
     {
-        rtcCommitGeometry(object.geometry);
-        unsigned int geoID = rtcAttachGeometry(g_scene, object.geometry);
+        auto nodeHandle = objects.extract(key);
+        rtcCommitGeometry(nodeHandle.mapped().geometry);
+        nodeHandle.key() = rtcAttachGeometry(g_scene, nodeHandle.mapped().geometry);
+        objects.insert(std::move(nodeHandle));
     }
 
     rtcCommitScene(g_scene);
 }
 
 
-void RebuildScene(RTCDevice& g_device, RTCScene& g_scene, std::vector<Object>& objects) noexcept
+void _RebuildScene(RTCDevice& g_device, RTCScene& g_scene, std::unordered_map<uint32_t, Object>& objects) noexcept
 {
     rtcReleaseScene(g_scene);
 
@@ -167,10 +168,12 @@ void RebuildScene(RTCDevice& g_device, RTCScene& g_scene, std::vector<Object>& o
     rtcSetSceneFlags(g_scene, RTC_SCENE_FLAG_DYNAMIC | RTC_SCENE_FLAG_ROBUST);
 
 
-    for (auto object : objects)
+    for (const auto& [key, object] : objects)
     {
-        rtcCommitGeometry(object.geometry);
-        unsigned int geoID = rtcAttachGeometry(g_scene, object.geometry);
+        auto nodeHandle = objects.extract(key);
+        rtcCommitGeometry(nodeHandle.mapped().geometry);
+        nodeHandle.key() = rtcAttachGeometry(g_scene, nodeHandle.mapped().geometry);
+        objects.insert(std::move(nodeHandle));
     }
 
     rtcCommitScene(g_scene);

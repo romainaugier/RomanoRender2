@@ -1,19 +1,43 @@
 #pragma once
 
+#include <utility>
+
 #include "OSL/oslexec.h"
-#include <OSL/rendererservices.h>
+#include "OSL/rendererservices.h"
+
+#include "utils/logger.h"
+#include "utils/profiler.h"
+#include "utils/embree.h"
+
+#include "shading/shading.h"
+
+#include "scene/scene.h"
+#include "scene/settings.h"
 
 // Renderer interface with OSL
 
-class Renderer : public OSL::RendererServices
+class RomanoRenderer : public OSL::RendererServices
 {
 public:
-	Renderer();
+	RomanoRenderer();
 
-	virtual ~Renderer() {};
+	~RomanoRenderer();
 
-    OSL::ShadingSystem* shadingsys() const noexcept { return shadingSys; }
+    OSL::ShadingSystem* shadingSys() const noexcept { return oslShadingSys; }
 
+    // Methods to interface with the scene
+    void InitializeEmbree() noexcept;
+
+    void LoadObject(std::string path) noexcept;
+
+    void BuildScene() noexcept;
+
+    void RebuildScene() noexcept;
+
+    // Methods to interface with shaders
+    void LoadShader(std::string path, std::string name) noexcept;
+
+    // Methods needed for OSL interaction with the renderer
     virtual bool get_matrix(OSL::Matrix44& result,
                             OSL::TransformationPtr xform,
                             float time);
@@ -102,7 +126,21 @@ public:
                                   int nattribs, const OSL::ustring* names,
                                   const OSL::TypeDesc* types,
                                   const void** data);
+public:
+    // Utilities
+    Logger* logger;
+    Profiler* profiler;
+
+    // Rendering
+    std::unordered_map<uint32_t, Object> sceneObjects;
+    std::unordered_map<uint32_t, std::pair<std::string, OSL::ShaderGroupRef>> sceneShaders;
+
+    RTCDevice embreeDevice;
+    RTCScene embreeScene;
+
+    Settings renderSettings;
 
 private:
-    OSL::ShadingSystem* shadingSys;
+    OSL::ShadingSystem* oslShadingSys;
+    OSL::ErrorHandler oslErrHandler;
 };

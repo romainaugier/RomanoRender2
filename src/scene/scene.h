@@ -11,17 +11,18 @@ struct alignas(32) Triangle { unsigned int v0, v1, v2; };
 
 struct Object
 {
-    mat44 transformation_matrix;
+    RTCGeometry geometry;
+
+    mat44 transformationMatrix;
 
     embree::Vec3f translate, scale, rotate;
 
     std::string name;
 
-    RTCGeometry geometry;
+    rVertex* origPositions;
 
-    rVertex* orig_positions;
-
-    uint32_t vtx_count;
+    uint32_t vtxCount;
+    uint32_t shaderId;
     uint32_t id;
 
     Object() {}
@@ -29,13 +30,13 @@ struct Object
         id(id),
         name(name),
         geometry(geometry),
-        orig_positions(orig_pos),
-        vtx_count(count)
+        origPositions(orig_pos),
+        vtxCount(count)
     {
-        transformation_matrix = { 1.0f, 0.0f, 0.0f, 0.0f,
-                                  0.0f, 1.0f, 0.0f, 0.0f,
-                                  0.0f, 0.0f, 1.0f, 0.0f,
-                                  0.0f, 0.0f, 0.0f, 1.0f };
+        transformationMatrix = { 1.0f, 0.0f, 0.0f, 0.0f,
+                                 0.0f, 1.0f, 0.0f, 0.0f,
+                                 0.0f, 0.0f, 1.0f, 0.0f,
+                                 0.0f, 0.0f, 0.0f, 1.0f };
 
         translate = embree::Vec3f(0.0f); rotate = embree::Vec3f(0.0f); scale = embree::Vec3f(1.0f);
     }
@@ -45,11 +46,10 @@ struct Object
     void Release() noexcept;
 };
 
-
 RTCGeometry LoadGeometry(objl::Mesh& object, RTCDevice& g_device, std::string& name, rVertex* orig, int& size) noexcept;
 
-void LoadObject(RTCDevice& g_device, std::string path, std::vector<Object>& objects) noexcept;
+void _LoadObject(RTCDevice& g_device, std::string path, std::unordered_map<uint32_t, Object>& objects) noexcept;
 
-void BuildScene(RTCDevice& g_device, RTCScene& g_scene, std::vector<Object>& objects) noexcept;
+void _BuildScene(RTCDevice& g_device, RTCScene& g_scene, std::unordered_map<uint32_t, Object>& objects) noexcept;
 
-void RebuildScene(RTCDevice& g_device, RTCScene& g_scene, std::vector<Object>& objects) noexcept;
+void _RebuildScene(RTCDevice& g_device, RTCScene& g_scene, std::unordered_map<uint32_t, Object>& objects) noexcept;

@@ -1,37 +1,83 @@
-#include "osl_renderer.h"
+#include "renderer.h"
 
-Renderer::Renderer()
+RomanoRenderer::RomanoRenderer()
 {
-    std::cout << "[DEBUG] Initialize Renderer" << std::endl;
+    this->logger = new Logger;
+    this->profiler = new Profiler;
+
+    this->logger->Log(LogLevel_Diagnostic, "Initializing OSL Shading System");
+    this->oslShadingSys = new OSL::ShadingSystem(this, nullptr, &oslErrHandler);
+    this->oslShadingSys->attribute("allow_shader_replacement", 1);
+    OSL::ustring outputs[] = { OSL::ustring("Cout") };
+    this->oslShadingSys->attribute("renderer_outputs", OSL::TypeDesc(OSL::TypeDesc::STRING, 1), &outputs);
+    
+    this->logger->Log(LogLevel_Diagnostic, "Registering OSL closures");
+    OSL::RegisterClosures(this->oslShadingSys);
 }
 
-bool Renderer::get_matrix(OSL::Matrix44& result,
+RomanoRenderer::~RomanoRenderer()
+{
+    delete this->logger;
+    delete this->profiler;
+    
+    this->logger->Log(LogLevel_Diagnostic, "Releasing OSL Shading System");
+    delete this->oslShadingSys;
+}
+
+void RomanoRenderer::InitializeEmbree() noexcept
+{
+    RTCDevice embreeDevice = initializeDevice();
+    RTCScene embreeScene = rtcNewScene(embreeDevice);
+
+    rtcSetSceneBuildQuality(embreeScene, RTC_BUILD_QUALITY_HIGH);
+    rtcSetSceneFlags(embreeScene, RTC_SCENE_FLAG_ROBUST);
+}
+
+void RomanoRenderer::LoadObject(std::string path) noexcept 
+{ 
+    this->logger->Log(LogLevel_Diagnostic, "Loading %s into the scene", path.c_str());
+    _LoadObject(this->embreeDevice, path, this->sceneObjects); 
+};
+
+void RomanoRenderer::BuildScene() noexcept 
+{ 
+    this->logger->Log(LogLevel_Diagnostic, "Building Embree scene");
+    _BuildScene(this->embreeDevice, this->embreeScene, this->sceneObjects); 
+};
+
+void RomanoRenderer::RebuildScene() noexcept 
+{ 
+    this->logger->Log(LogLevel_Diagnostic, "Building Embree scene");
+    _RebuildScene(this->embreeDevice, this->embreeScene, this->sceneObjects); 
+};
+
+bool RomanoRenderer::get_matrix(OSL::Matrix44& result,
                           OSL::TransformationPtr xform,
                           float time)
 {
     return false;
 }
 
-bool Renderer::get_matrix(OSL::Matrix44& result,
+bool RomanoRenderer::get_matrix(OSL::Matrix44& result,
                           OSL::TransformationPtr xform)
 {
     return false;
 }
 
-bool Renderer::get_matrix(OSL::Matrix44& result,
+bool RomanoRenderer::get_matrix(OSL::Matrix44& result,
                           OSL::ustring from,
                           float time)
 {
     return false;
 }
 
-bool Renderer::get_matrix(OSL::Matrix44& result,
+bool RomanoRenderer::get_matrix(OSL::Matrix44& result,
                           OSL::ustring from)
 {
     return false;
 }
 
-bool Renderer::get_attribute(void* renderstate,
+bool RomanoRenderer::get_attribute(void* renderstate,
                              bool derivatives,
                              OSL::ustring object,
                              OSL::TypeDesc type,
@@ -41,7 +87,7 @@ bool Renderer::get_attribute(void* renderstate,
     return false;
 }
 
-bool Renderer::get_array_attribute(void* renderstate,
+bool RomanoRenderer::get_array_attribute(void* renderstate,
                                    bool derivatives,
                                    OSL::ustring object,
                                    OSL::TypeDesc type,
@@ -52,7 +98,7 @@ bool Renderer::get_array_attribute(void* renderstate,
     return false;
 }
 
-bool Renderer::get_userdata(bool derivatives,
+bool RomanoRenderer::get_userdata(bool derivatives,
                             OSL::ustring name,
                             OSL::TypeDesc type,
                             void* renderstate,
@@ -61,14 +107,14 @@ bool Renderer::get_userdata(bool derivatives,
     return false;
 }
 
-bool Renderer::has_userdata(OSL::ustring name,
+bool RomanoRenderer::has_userdata(OSL::ustring name,
                             OSL::TypeDesc type,
                             void* renderstate)
 {
     return false;
 }
 
-bool Renderer::trace(TraceOpt& options, OSL::ShaderGlobals* sg,
+bool RomanoRenderer::trace(TraceOpt& options, OSL::ShaderGlobals* sg,
                      const OSL::Vec3& P, const OSL::Vec3& dPdx,
                      const OSL::Vec3& dPdy, const OSL::Vec3& R,
                      const OSL::Vec3& dRdx, const OSL::Vec3& dRdy)
@@ -76,7 +122,7 @@ bool Renderer::trace(TraceOpt& options, OSL::ShaderGlobals* sg,
     return false;
 }
 
-bool Renderer::transform_points(OSL::ShaderGlobals* sg,
+bool RomanoRenderer::transform_points(OSL::ShaderGlobals* sg,
                                 OSL::ustring from, OSL::ustring to, float time,
                                 const OSL::Vec3* Pin, OSL::Vec3* Pout, int npoints,
                                 OSL::TypeDesc::VECSEMANTICS vectype)
@@ -84,7 +130,7 @@ bool Renderer::transform_points(OSL::ShaderGlobals* sg,
     return false;
 }
 
-bool Renderer::texture3d(OSL::ustring filename, TextureHandle* texture_handle,
+bool RomanoRenderer::texture3d(OSL::ustring filename, TextureHandle* texture_handle,
                          TexturePerthread* texture_thread_info,
                          OSL::TextureOpt& options, OSL::ShaderGlobals* sg,
                          const OSL::Vec3& P, const OSL::Vec3& dPdx, const OSL::Vec3& dPdy,
@@ -96,7 +142,7 @@ bool Renderer::texture3d(OSL::ustring filename, TextureHandle* texture_handle,
     return false;
 }
 
-bool Renderer::environment(OSL::ustring filename, TextureHandle* texture_handle,
+bool RomanoRenderer::environment(OSL::ustring filename, TextureHandle* texture_handle,
                            TexturePerthread* texture_thread_info,
                            OSL::TextureOpt& options, OSL::ShaderGlobals* sg,
                            const OSL::Vec3& R, const OSL::Vec3& dRdx, const OSL::Vec3& dRdy,
@@ -107,7 +153,7 @@ bool Renderer::environment(OSL::ustring filename, TextureHandle* texture_handle,
     return false;
 }
 
-int Renderer::pointcloud_search(OSL::ShaderGlobals* sg,
+int RomanoRenderer::pointcloud_search(OSL::ShaderGlobals* sg,
                                 OSL::ustring filename,
                                 const OSL::Vec3& center,
                                 float radius,
@@ -120,7 +166,7 @@ int Renderer::pointcloud_search(OSL::ShaderGlobals* sg,
     return 0;
 }
 
-int Renderer::pointcloud_get(OSL::ustring filename,
+int RomanoRenderer::pointcloud_get(OSL::ustring filename,
                              size_t* indices,
                              int count,
                              OSL::ustring attr_name,
@@ -130,7 +176,7 @@ int Renderer::pointcloud_get(OSL::ustring filename,
     return 0;
 }
 
-bool Renderer::pointcloud_write(OSL::ShaderGlobals* sg,
+bool RomanoRenderer::pointcloud_write(OSL::ShaderGlobals* sg,
                                 OSL::ustring filename, const OSL::Vec3& pos,
                                 int nattribs, const OSL::ustring* names,
                                 const OSL::TypeDesc* types,

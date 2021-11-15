@@ -8,7 +8,6 @@
 
 #include "../common/math/vec3.h"
 
-#include "osl_renderer.h"
 #include "sampling.h"
 
 #define NUM_CLOSURES 1

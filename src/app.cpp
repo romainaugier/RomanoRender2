@@ -22,34 +22,11 @@ static void glfw_error_callback(int error, const char* description)
 
 int application(int argc, char** argv)
 {
-    _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
-    _MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_ON);
-
     // Setup embree scene
     std::string path = "D:/dev/Utils/Models/dragon_2_scene.obj";
-    
-    RTCDevice embreeDevice = initializeDevice();
-    RTCScene embreeScene = rtcNewScene(embreeDevice);
-
-    rtcSetSceneBuildQuality(embreeScene, RTC_BUILD_QUALITY_HIGH);
-    rtcSetSceneFlags(embreeScene, RTC_SCENE_FLAG_ROBUST);
-
-    std::vector<Object> objects;
-    
-    LoadObject(embreeDevice, path, objects);
-    
-    auto start = get_time();
-    
-    BuildScene(embreeDevice, embreeScene, objects);
-
-    auto end = get_time();
-
-    float elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
-    printf("[DEBUG] Acceleration structure building time : %0.3f ms\n", elapsed);
 
     // Setup OSL
-    Renderer renderer;
+    RomanoRenderer renderer;
     OSL::ErrorHandler oslErrHandler;
 
     OSL::ShadingSystem* oslShadingSys = new OSL::ShadingSystem(&renderer, nullptr, &oslErrHandler);
