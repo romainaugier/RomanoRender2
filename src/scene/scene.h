@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../mat44.h"
+#include "../utils/mat44.h"
 #include <string>
 #include "objloader.h"
 #include "embree3/rtcore.h"
@@ -48,8 +48,14 @@ struct Object
 
 RTCGeometry LoadGeometry(objl::Mesh& object, RTCDevice& g_device, std::string& name, rVertex* orig, int& size) noexcept;
 
-void _LoadObject(RTCDevice& g_device, std::string path, std::unordered_map<uint32_t, Object>& objects) noexcept;
+namespace utils
+{
+    // Function that loads an object
+    void LoadObject(RTCDevice& g_device, std::string path, std::unordered_map<uint32_t, Object>& objects) noexcept;
 
-void _BuildScene(RTCDevice& g_device, RTCScene& g_scene, std::unordered_map<uint32_t, Object>& objects) noexcept;
+    // Function that builds the embree scene (for geometry)
+    void BuildScene(RTCDevice& g_device, RTCScene& g_scene, std::unordered_map<uint32_t, Object>& objects) noexcept;
 
-void _RebuildScene(RTCDevice& g_device, RTCScene& g_scene, std::unordered_map<uint32_t, Object>& objects) noexcept;
+    // Function that rebuilds the entire scene
+    void RebuildScene(RTCDevice& g_device, RTCScene& g_scene, std::unordered_map<uint32_t, Object>& objects) noexcept;
+}

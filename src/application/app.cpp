@@ -15,15 +15,15 @@ static void glfw_error_callback(int error, const char* description)
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
-#include "app.h"
+#include "application/app.h"
 
 #define FLYTHROUGH_CAMERA_IMPLEMENTATION
-#include "flythrough_camera.h"
+#include "scene/flythrough_camera.h"
 
 int application(int argc, char** argv)
 {
     // Setup embree scene
-    std::string path = "D:/dev/Utils/Models/dragon_2_scene.obj";
+    const std::string path = "D:/dev/Utils/Models/dragon_2_scene.obj";
 
     // Setup OSL
     RomanoRenderer renderer;
@@ -139,7 +139,7 @@ int application(int argc, char** argv)
     static bool drawBvh = false;
     static bool doTiles = true;
     float elapsedBvh = 0.0f;
-    elapsed = 0.0f;
+    float elapsed = 0.0f;
     float renderSeconds = 0.0f;
 
     // Flythrough camera
@@ -215,13 +215,13 @@ int application(int argc, char** argv)
 
         if(render)
         {
-            auto start = get_time();
+            /*auto start = get_time();
 
             RenderTiles(embreeScene, oslShadingSys, renderBuffer, objects, shaders, samples, ImGui::GetFrameCount(), tiles, cam, settings);
 
             auto end = get_time();
 
-            elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();*/
 
             renderSeconds += elapsed;
 
@@ -263,6 +263,8 @@ int application(int argc, char** argv)
             oldCursor = cursor;
         }
 
+        if (show_demo_window) ImGui::ShowDemoWindow();
+
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         ImGui::EndFrame();
@@ -272,14 +274,8 @@ int application(int argc, char** argv)
 
     ReleaseTiles(tiles);
 
-    // Release OSL Shading Systems
-    delete oslShadingSys;
-
     delete[] accumBuffer;
     delete[] renderBuffer;
-
-    rtcReleaseScene(embreeScene);
-    rtcReleaseDevice(embreeDevice);
 
     // Cleanup
     ImGui_ImplOpenGL3_Shutdown();

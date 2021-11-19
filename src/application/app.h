@@ -1,9 +1,9 @@
 #pragma once
 
-#include "render.h"
-#include "glutils.h"
-
-#include "shading/renderer.h"
+#include "renderer/render.h"
+#include "utils/glutils.h"
+#include "scene/camera.h"
+#include "renderer/renderer.h"
 
 #include "OSL/oslexec.h"
 

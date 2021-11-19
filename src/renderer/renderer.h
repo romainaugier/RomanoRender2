@@ -16,6 +16,10 @@
 
 // Renderer interface with OSL
 
+using ObjectsMap = std::unordered_map<uint32_t, Object>;
+using ShadersMap = std::unordered_map<uint32_t, std::pair<std::string, OSL::ShaderGroupRef>>;
+
+
 class RomanoRenderer : public OSL::RendererServices
 {
 public:
@@ -23,9 +27,7 @@ public:
 
 	~RomanoRenderer();
 
-    OSL::ShadingSystem* shadingSys() const noexcept { return oslShadingSys; }
-
-    // Methods to interface with the scene
+    // Wrappers around the scene functions
     void InitializeEmbree() noexcept;
 
     void LoadObject(std::string path) noexcept;
@@ -33,9 +35,6 @@ public:
     void BuildScene() noexcept;
 
     void RebuildScene() noexcept;
-
-    // Methods to interface with shaders
-    void LoadShader(std::string path, std::string name) noexcept;
 
     // Methods needed for OSL interaction with the renderer
     virtual bool get_matrix(OSL::Matrix44& result,
@@ -132,15 +131,15 @@ public:
     Profiler* profiler;
 
     // Rendering
-    std::unordered_map<uint32_t, Object> sceneObjects;
-    std::unordered_map<uint32_t, std::pair<std::string, OSL::ShaderGroupRef>> sceneShaders;
+    OSL::ShadingSystem* oslShadingSys;
+    OSL::ErrorHandler oslErrHandler;
+
+    ObjectsMap sceneObjects;
+    ShadersMap sceneShaders;
 
     RTCDevice embreeDevice;
     RTCScene embreeScene;
 
     Settings renderSettings;
 
-private:
-    OSL::ShadingSystem* oslShadingSys;
-    OSL::ErrorHandler oslErrHandler;
 };

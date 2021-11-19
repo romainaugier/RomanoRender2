@@ -3,7 +3,7 @@
 #include "common/math/vec3.h"
 #include "embree3/rtcore_ray.h"
 
-#include "camera.h"
+#include "scene/camera.h"
 #include "shading/sampling.h"
 #include "ispc/rand.h"
 

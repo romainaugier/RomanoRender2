@@ -1,13 +1,7 @@
 #pragma once
 
-#ifndef RENDER
-#define RENDER
-
-#include "mat44.h"
-#include "camera.h"
-#include "ray.h"
-#include "material.h"
-#include "settings.h"
+#include "utils/ray.h"
+#include "scene/settings.h"
 #include "scene/scene.h"
 #include "GL/glew.h"
 #include "embree3/rtcore.h"
@@ -80,6 +74,3 @@ embree::Vec3f Pathtrace(const RTCScene& embreeScene,
 						OSL::ShaderGlobals& globals,
 						uint32_t& id,
 						RTCIntersectContext& context) noexcept;
-
-#endif // !RENDER
-

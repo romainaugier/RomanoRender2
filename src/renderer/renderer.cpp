@@ -5,9 +5,12 @@ RomanoRenderer::RomanoRenderer()
     this->logger = new Logger;
     this->profiler = new Profiler;
 
+    this->InitializeEmbree();
+
     this->logger->Log(LogLevel_Diagnostic, "Initializing OSL Shading System");
     this->oslShadingSys = new OSL::ShadingSystem(this, nullptr, &oslErrHandler);
     this->oslShadingSys->attribute("allow_shader_replacement", 1);
+    this->oslShadingSys->attribute("llvm_optimize", 2);
     OSL::ustring outputs[] = { OSL::ustring("Cout") };
     this->oslShadingSys->attribute("renderer_outputs", OSL::TypeDesc(OSL::TypeDesc::STRING, 1), &outputs);
     
@@ -22,33 +25,39 @@ RomanoRenderer::~RomanoRenderer()
     
     this->logger->Log(LogLevel_Diagnostic, "Releasing OSL Shading System");
     delete this->oslShadingSys;
+
+    this->logger->Log(LogLevel_Diagnostic, "Releasing Embree");
+    rtcReleaseScene(this->embreeScene);
+    rtcReleaseDevice(this->embreeDevice);
 }
 
 void RomanoRenderer::InitializeEmbree() noexcept
 {
-    RTCDevice embreeDevice = initializeDevice();
-    RTCScene embreeScene = rtcNewScene(embreeDevice);
+    this->logger->Log(LogLevel_Diagnostic, "Initializing Embree");
 
-    rtcSetSceneBuildQuality(embreeScene, RTC_BUILD_QUALITY_HIGH);
-    rtcSetSceneFlags(embreeScene, RTC_SCENE_FLAG_ROBUST);
+    this->embreeDevice = initializeDevice();
+    this->embreeScene = rtcNewScene(this->embreeDevice);
+
+    rtcSetSceneBuildQuality(this->embreeScene, RTC_BUILD_QUALITY_HIGH);
+    rtcSetSceneFlags(this->embreeScene, RTC_SCENE_FLAG_ROBUST);
 }
 
 void RomanoRenderer::LoadObject(std::string path) noexcept 
 { 
     this->logger->Log(LogLevel_Diagnostic, "Loading %s into the scene", path.c_str());
-    _LoadObject(this->embreeDevice, path, this->sceneObjects); 
+    utils::LoadObject(this->embreeDevice, path, this->sceneObjects); 
 };
 
 void RomanoRenderer::BuildScene() noexcept 
 { 
     this->logger->Log(LogLevel_Diagnostic, "Building Embree scene");
-    _BuildScene(this->embreeDevice, this->embreeScene, this->sceneObjects); 
+    utils::BuildScene(this->embreeDevice, this->embreeScene, this->sceneObjects); 
 };
 
 void RomanoRenderer::RebuildScene() noexcept 
 { 
     this->logger->Log(LogLevel_Diagnostic, "Building Embree scene");
-    _RebuildScene(this->embreeDevice, this->embreeScene, this->sceneObjects); 
+    utils::RebuildScene(this->embreeDevice, this->embreeScene, this->sceneObjects); 
 };
 
 bool RomanoRenderer::get_matrix(OSL::Matrix44& result,

@@ -107,74 +107,76 @@ RTCGeometry LoadGeometry(objl::Mesh& object, RTCDevice& g_device, std::string& n
     return geo;
 }
 
-
-void _LoadObject(RTCDevice& g_device, std::string path, std::unordered_map<uint32_t, Object>& objects) noexcept
+namespace utils
 {
-    objl::Loader loader;
-
-    bool ret = loader.LoadFile(path);
-
-
-
-    if (ret)
+    void LoadObject(RTCDevice& g_device, std::string path, std::unordered_map<uint32_t, Object>& objects) noexcept
     {
-        std::string name;
+        objl::Loader loader;
 
-        int i = 0;
+        bool ret = loader.LoadFile(path);
 
-        //#pragma omp parallel for
-        for (auto& object : loader.LoadedMeshes)
+
+
+        if (ret)
         {
-            int vtx_number;
+            std::string name;
 
-            // here we create a custom buffer to store the original vertices positions to be able to apply transform on it 
-            // this buffer gets freed with the Object::release() method
-            rVertex* orig = (rVertex*)malloc(sizeof(rVertex) * object.Vertices.size());
+            int i = 0;
 
-            RTCGeometry current_geometry = LoadGeometry(object, g_device, name, orig, vtx_number);
-
-            //#pragma omp critical
+            //#pragma omp parallel for
+            for (auto& object : loader.LoadedMeshes)
             {
-                objects.emplace(i, Object(i, name, current_geometry, orig, vtx_number));
+                int vtx_number;
+
+                // here we create a custom buffer to store the original vertices positions to be able to apply transform on it 
+                // this buffer gets freed with the Object::release() method
+                rVertex* orig = (rVertex*)malloc(sizeof(rVertex) * object.Vertices.size());
+
+                RTCGeometry current_geometry = LoadGeometry(object, g_device, name, orig, vtx_number);
+
+                //#pragma omp critical
+                {
+                    objects.emplace(i, Object(i, name, current_geometry, orig, vtx_number));
+                }
+
+                i++;
             }
-            
-            i++;
         }
+
     }
 
-}
 
-
-void _BuildScene(RTCDevice& g_device, RTCScene& g_scene, std::unordered_map<uint32_t, Object>& objects) noexcept
-{
-    for (const auto& [key, object] : objects)
+    void BuildScene(RTCDevice& g_device, RTCScene& g_scene, std::unordered_map<uint32_t, Object>& objects) noexcept
     {
-        auto nodeHandle = objects.extract(key);
-        rtcCommitGeometry(nodeHandle.mapped().geometry);
-        nodeHandle.key() = rtcAttachGeometry(g_scene, nodeHandle.mapped().geometry);
-        objects.insert(std::move(nodeHandle));
+        for (const auto& [key, object] : objects)
+        {
+            auto nodeHandle = objects.extract(key);
+            rtcCommitGeometry(nodeHandle.mapped().geometry);
+            nodeHandle.key() = rtcAttachGeometry(g_scene, nodeHandle.mapped().geometry);
+            objects.insert(std::move(nodeHandle));
+        }
+
+        rtcCommitScene(g_scene);
     }
 
-    rtcCommitScene(g_scene);
-}
 
-
-void _RebuildScene(RTCDevice& g_device, RTCScene& g_scene, std::unordered_map<uint32_t, Object>& objects) noexcept
-{
-    rtcReleaseScene(g_scene);
-
-    g_scene = rtcNewScene(g_device);
-    rtcSetSceneBuildQuality(g_scene, RTC_BUILD_QUALITY_HIGH);
-    rtcSetSceneFlags(g_scene, RTC_SCENE_FLAG_DYNAMIC | RTC_SCENE_FLAG_ROBUST);
-
-
-    for (const auto& [key, object] : objects)
+    void RebuildScene(RTCDevice& g_device, RTCScene& g_scene, std::unordered_map<uint32_t, Object>& objects) noexcept
     {
-        auto nodeHandle = objects.extract(key);
-        rtcCommitGeometry(nodeHandle.mapped().geometry);
-        nodeHandle.key() = rtcAttachGeometry(g_scene, nodeHandle.mapped().geometry);
-        objects.insert(std::move(nodeHandle));
-    }
+        rtcReleaseScene(g_scene);
 
-    rtcCommitScene(g_scene);
+        g_scene = rtcNewScene(g_device);
+        rtcSetSceneBuildQuality(g_scene, RTC_BUILD_QUALITY_HIGH);
+        rtcSetSceneFlags(g_scene, RTC_SCENE_FLAG_DYNAMIC | RTC_SCENE_FLAG_ROBUST);
+
+
+        for (const auto& [key, object] : objects)
+        {
+            auto nodeHandle = objects.extract(key);
+            rtcCommitGeometry(nodeHandle.mapped().geometry);
+            nodeHandle.key() = rtcAttachGeometry(g_scene, nodeHandle.mapped().geometry);
+            objects.insert(std::move(nodeHandle));
+        }
+
+        rtcCommitScene(g_scene);
+    }
 }

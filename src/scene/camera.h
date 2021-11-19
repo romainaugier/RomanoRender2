@@ -1,6 +1,6 @@
 #pragma once
 
-#include "mat44.h"
+#include "utils/mat44.h"
 
 struct Camera
 {
