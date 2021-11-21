@@ -2,7 +2,13 @@
 
 #include "imgui.h"
 
+#include "renderer/renderer.h"
+#include "shading/shading_utils.h"
+
 struct CodeEditor
 {
-	void Draw();
+	RomanoRenderer* renderer = nullptr;
+	bool isBeingEdited = false;
+
+	void Draw() noexcept;
 };

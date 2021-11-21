@@ -1,14 +1,18 @@
 #pragma once
 
-#include "../utils/mat44.h"
-#include <string>
-#include "objloader.h"
+#include "utils/mat44.h"
+#include "scene/objloader.h"
+
+#include "OpenImageIO/strutil.h"
 #include "embree3/rtcore.h"
+
+#include <string>
 
 struct alignas(16) rVertex { float x, y, z; };
 struct alignas(16) rTexCoord { float u, v; };
 struct alignas(32) Triangle { unsigned int v0, v1, v2; };
 
+// Represents an object in the scene used by the renderer
 struct Object
 {
     RTCGeometry geometry;
@@ -19,16 +23,22 @@ struct Object
 
     std::string name;
 
+    // The scenePath is the path to the object from the scene top level
+    // Currently, as we can only load .obj, the path will be the name of the file,
+    // but when usd or alembic will be implemented, we will use the hierarchy as the path
+    std::string scenePath;
+
     rVertex* origPositions;
 
     uint32_t vtxCount;
-    uint32_t shaderId;
+    uint32_t shaderId = 0;
     uint32_t id;
 
     Object() {}
-    Object(uint32_t id, std::string name, RTCGeometry geometry, rVertex* orig_pos, int count) :
+    Object(uint32_t id, std::string name, std::string path, RTCGeometry geometry, rVertex* orig_pos, int count) :
         id(id),
         name(name),
+        scenePath(path),
         geometry(geometry),
         origPositions(orig_pos),
         vtxCount(count)

@@ -23,7 +23,7 @@ static void glfw_error_callback(int error, const char* description)
 int application(int argc, char** argv)
 {
     // Setup embree scene
-    const std::string path = "D:/dev/Utils/Models/dragon_2_scene.obj";
+    const std::string path = "D:/dev/Utils/Models/scene_drag.obj";
 
     // Setup OSL
     RomanoRenderer renderer;
@@ -77,6 +77,7 @@ int application(int argc, char** argv)
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    ImNodes::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
 
     ImGuiStyle* style = &ImGui::GetStyle();
@@ -104,13 +105,14 @@ int application(int argc, char** argv)
     settings.xres = xres;
     settings.yres = yres;
 
-
-    color* accumBuffer = new color[xres * yres];
-    color* renderBuffer = new color[xres * yres];
-
+    // Render Tiles
     Tiles tiles;
     GenerateTiles(tiles, settings);
     
+    // Renderview
+    color* accumBuffer = new color[xres * yres];
+    color* renderBuffer = new color[xres * yres];
+
     GLuint render_view_texture;
 
     glGenTextures(1, &render_view_texture);
@@ -131,7 +133,34 @@ int application(int argc, char** argv)
     glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, render_view_texture, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    Shader shader;
+    // ImFileDialog texture functions definitions
+    ifd::FileDialog::Instance().CreateTexture = [](uint8_t* data, int w, int h, char fmt) -> void* {
+        GLuint tex;
+
+        glGenTextures(1, &tex);
+        glBindTexture(GL_TEXTURE_2D, tex);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, (fmt == 0) ? GL_BGRA : GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        return (void*)tex;
+    };
+
+    ifd::FileDialog::Instance().DeleteTexture = [](void* tex) {
+        GLuint texID = (GLuint)tex;
+        glDeleteTextures(1, &texID);
+    };
+
+    // Windows declarations
+    CodeEditor codeEditor; codeEditor.renderer = &renderer;
+    NodeEditor nodeEditor;
+    Outliner outliner; outliner.renderer = &renderer;
+    Shortcuts shortcuts;
+    MenuBar menubar; menubar.renderer = &renderer;
 
     uint32_t samples = 1;
     bool edited = 0;
@@ -157,6 +186,9 @@ int application(int argc, char** argv)
     // Main loop
     while (!glfwWindowShouldClose(window))
     {
+        // Process shortcuts and avoids conflicts between typing text and processing app shortcuts
+        if (!codeEditor.isBeingEdited) shortcuts.Process();
+
         // Reset the render accumulation buffer if something has been edited
         if (edited)
         {
@@ -239,23 +271,26 @@ int application(int argc, char** argv)
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
-        // Info Window
+        // if (show_demo_window) ImGui::ShowDemoWindow();
+
+        // Draw windows/hide them if maj is pressed
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
-        ImGui::Begin("Debug");
+        
+        menubar.Draw();
+
+        if (shortcuts.map["space"])
         {
-            ImGui::Text("FPS : %0.3f", ImGui::GetIO().Framerate);
-            ImGui::Text("Frame time : %0.3f ms", elapsed);
-            ImGui::Text("Render time : %0.1f s", renderSeconds / 1000.0f);
-            ImGui::Text("Samples : %d", samples);
-            if (ImGui::Button("Render"))
-            {
-                if (render) render = false;
-                else render = true;
-            }
-            ImGui::End();
+            nodeEditor.Draw();
+            codeEditor.Draw();
+            outliner.Draw();
         }
+
         ImGui::PopStyleColor();
 
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        ImGui::EndFrame();
+        
         if (render)
         {
             samples++;
@@ -263,12 +298,7 @@ int application(int argc, char** argv)
             oldCursor = cursor;
         }
 
-        if (show_demo_window) ImGui::ShowDemoWindow();
 
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        ImGui::EndFrame();
-        
         glfwSwapBuffers(window);
     }
 
@@ -280,6 +310,7 @@ int application(int argc, char** argv)
     // Cleanup
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
+    ImNodes::DestroyContext();
     ImGui::DestroyContext();
 
     glfwDestroyWindow(window);

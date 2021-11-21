@@ -5,6 +5,11 @@ RomanoRenderer::RomanoRenderer()
     this->logger = new Logger;
     this->profiler = new Profiler;
 
+    this->logger->SetLevel(LogLevel_Diagnostic);
+
+    this->sceneObjects = {};
+    this->sceneShaders = {};
+
     this->InitializeEmbree();
 
     this->logger->Log(LogLevel_Diagnostic, "Initializing OSL Shading System");
@@ -20,15 +25,18 @@ RomanoRenderer::RomanoRenderer()
 
 RomanoRenderer::~RomanoRenderer()
 {
-    delete this->logger;
-    delete this->profiler;
-    
+    this->logger->Log(LogLevel_Diagnostic, "Releasing objects");
+    for (auto& [key, object] : this->sceneObjects) object.Release();
+
     this->logger->Log(LogLevel_Diagnostic, "Releasing OSL Shading System");
     delete this->oslShadingSys;
 
     this->logger->Log(LogLevel_Diagnostic, "Releasing Embree");
     rtcReleaseScene(this->embreeScene);
     rtcReleaseDevice(this->embreeDevice);
+    
+    delete this->logger;
+    delete this->profiler;
 }
 
 void RomanoRenderer::InitializeEmbree() noexcept
@@ -44,7 +52,7 @@ void RomanoRenderer::InitializeEmbree() noexcept
 
 void RomanoRenderer::LoadObject(std::string path) noexcept 
 { 
-    this->logger->Log(LogLevel_Diagnostic, "Loading %s into the scene", path.c_str());
+    this->logger->Log(LogLevel_Diagnostic, "Loading %s", path.c_str());
     utils::LoadObject(this->embreeDevice, path, this->sceneObjects); 
 };
 

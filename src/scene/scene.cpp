@@ -115,13 +115,16 @@ namespace utils
 
         bool ret = loader.LoadFile(path);
 
-
-
         if (ret)
         {
             std::string name;
 
-            int i = 0;
+            std::string baseFilename = path.substr(path.find_last_of("/\\") + 1);
+            std::string::size_type const p(baseFilename.find_last_of('.'));
+            std::string objectPath = baseFilename.substr(0, p);
+
+            // To have a correct hash, we need to increment with the total amount of objects in the scene
+            int i = objects.size();
 
             //#pragma omp parallel for
             for (auto& object : loader.LoadedMeshes)
@@ -133,10 +136,10 @@ namespace utils
                 rVertex* orig = (rVertex*)malloc(sizeof(rVertex) * object.Vertices.size());
 
                 RTCGeometry current_geometry = LoadGeometry(object, g_device, name, orig, vtx_number);
-
+                
                 //#pragma omp critical
                 {
-                    objects.emplace(i, Object(i, name, current_geometry, orig, vtx_number));
+                    objects.emplace(i, Object(i, name, objectPath, current_geometry, orig, vtx_number));
                 }
 
                 i++;
@@ -148,12 +151,17 @@ namespace utils
 
     void BuildScene(RTCDevice& g_device, RTCScene& g_scene, std::unordered_map<uint32_t, Object>& objects) noexcept
     {
-        for (const auto& [key, object] : objects)
+        for (auto& [key, object] : objects)
         {
-            auto nodeHandle = objects.extract(key);
-            rtcCommitGeometry(nodeHandle.mapped().geometry);
-            nodeHandle.key() = rtcAttachGeometry(g_scene, nodeHandle.mapped().geometry);
-            objects.insert(std::move(nodeHandle));
+            // not sure of this one
+            //auto nodeHandle = objects.extract(key);
+            //rtcCommitGeometry(nodeHandle.mapped().geometry);
+            //nodeHandle.key() = rtcAttachGeometry(g_scene, nodeHandle.mapped().geometry);
+            //objects.insert(std::move(nodeHandle));
+        
+            rtcCommitGeometry(object.geometry);
+            const unsigned int geomID = rtcAttachGeometry(g_scene, object.geometry);
+            objects[geomID] = object;
         }
 
         rtcCommitScene(g_scene);
@@ -168,13 +176,11 @@ namespace utils
         rtcSetSceneBuildQuality(g_scene, RTC_BUILD_QUALITY_HIGH);
         rtcSetSceneFlags(g_scene, RTC_SCENE_FLAG_DYNAMIC | RTC_SCENE_FLAG_ROBUST);
 
-
         for (const auto& [key, object] : objects)
         {
-            auto nodeHandle = objects.extract(key);
-            rtcCommitGeometry(nodeHandle.mapped().geometry);
-            nodeHandle.key() = rtcAttachGeometry(g_scene, nodeHandle.mapped().geometry);
-            objects.insert(std::move(nodeHandle));
+            rtcCommitGeometry(object.geometry);
+            const unsigned int geomID = rtcAttachGeometry(g_scene, object.geometry);
+            objects[geomID] = object;
         }
 
         rtcCommitScene(g_scene);

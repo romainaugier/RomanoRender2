@@ -1,6 +1,8 @@
 #pragma once
 
 #include <utility>
+#include <mutex>
+#include <thread>
 
 #include "OSL/oslexec.h"
 #include "OSL/rendererservices.h"
@@ -137,9 +139,17 @@ public:
     ObjectsMap sceneObjects;
     ShadersMap sceneShaders;
 
+    uint32_t numObjects;
+    uint16_t numShader;
+
     RTCDevice embreeDevice;
     RTCScene embreeScene;
 
     Settings renderSettings;
 
+    bool doRender = false;
+    uint32_t numSamples = 0;
+
+    std::mutex renderMutex;
+    std::thread renderThread;
 };
