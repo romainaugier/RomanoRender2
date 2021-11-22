@@ -12,8 +12,9 @@
 
 #include "OSL/oslexec.h"
 
+#ifdef _WIN32
 #include <Windows.h>
 #include <WinUser.h>
-
+#endif
 
 int application(int argc, char** argv);

@@ -4,7 +4,6 @@
 #include "embree3/rtcore_ray.h"
 
 #include "scene/camera.h"
-#include "shading/sampling.h"
 #include "ispc/rand.h"
 
 // Helper functions for rays

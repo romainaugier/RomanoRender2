@@ -1,8 +1,7 @@
 #pragma once
 
-#include "../common/math/Vec3.h"
-#include "../common/math/constants.h"
-#include <immintrin.h>
+#include "common/math/Vec3.h"
+#include "common/math/constants.h"
 #include <limits>
 #include <cstring>
 
@@ -163,7 +162,7 @@ inline void randomFloatWangHash8(float* randoms, int* state) noexcept
 }
 
 
-// The following two random float generation functions are from
+// The following random float generation functions is from
 // https://www.reedbeta.com/blog/hash-functions-for-gpu-rendering/
 
 inline float randomFloatPcg(unsigned int state)
@@ -177,41 +176,6 @@ inline float randomFloatPcg(unsigned int state)
     state = (word >> 22u) ^ word;
 
     return static_cast<float>(state) * toFloat;
-}
-
-
-inline void randomFloatPcg8(float* randoms, unsigned int* state)
-{
-    __m256i states = _mm256_set1_epi32(94853);
-    const __m256i constant1 = _mm256_set1_epi32(747796405u);
-    const __m256i constant2 = _mm256_set1_epi32(2891336453u);
-    const __m256i constant3 = _mm256_set1_epi32(277803737u);
-
-    states = _mm256_add_epi32(_mm256_mul_epi32(states, constant1), constant2);
-
-    const __m256i word = _mm256_mul_epi32(
-        _mm256_xor_si256(
-            _mm256_srav_epi32(states,
-                _mm256_add_epi32(
-                    _mm256_srav_epi32(states,
-                        _mm256_set1_epi32(28u)),
-                    _mm256_set1_epi32(4u))),
-            states),
-        constant3);
-
-    states = _mm256_xor_si256(
-        _mm256_srav_epi32(word,
-            _mm256_set1_epi32(22u)),
-        word);
-
-    constexpr unsigned int floatAddr = 0x2f800004u;
-    auto toFloat = float();
-    memcpy(&toFloat, &floatAddr, 4);
-
-    const __m256 tofloat2 = _mm256_set1_ps(toFloat);
-    __m256 floats = _mm256_mul_ps(_mm256_cvtepi32_ps(states), tofloat2);
-    floats = _mm256_add_ps(floats, _mm256_set1_ps(0.5f));
-    _mm256_storeu_ps(randoms, floats);
 }
 
 inline embree::Vec3f SampleHemisphere(const embree::Vec3f& hit_normal, const float random_x, const float random_y, const float random_z)

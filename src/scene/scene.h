@@ -3,7 +3,6 @@
 #include "utils/mat44.h"
 #include "scene/objloader.h"
 
-#include "OpenImageIO/strutil.h"
 #include "embree3/rtcore.h"
 
 #include <string>

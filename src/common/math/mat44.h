@@ -1,8 +1,5 @@
 #pragma once
 
-#ifndef MATRIX
-#define MATRIX
-
 #include "common/math/vec3.h"
 
 struct mat44
@@ -122,6 +119,3 @@ inline embree::Vec3f transform_dir(const embree::Vec3f& v, const mat44& m) noexc
         v.x * m[1][0] + v.y * m[1][1] + v.z * m[1][2],
         v.x * m[2][0] + v.y * m[2][1] + v.z * m[2][2]);
 }
-
-
-#endif
