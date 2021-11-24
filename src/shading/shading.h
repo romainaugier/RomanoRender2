@@ -6,9 +6,9 @@
 #include "OSL/dual_vec.h"
 #include "OSL/shaderglobals.h"
 
-#include "../common/math/vec3.h"
+#include "common/math/vec3.h"
 
-#include "sampling.h"
+#include "shading/sampling.h"
 
 #define NUM_CLOSURES 1
 
