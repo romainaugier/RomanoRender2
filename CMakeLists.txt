@@ -63,7 +63,7 @@ find_package(tbb REQUIRED)
 find_package(embree 3 REQUIRED)
 
 # OSL
-find_package(osl REQUIRED)
+# find_package(osl REQUIRED)
 
 # Subdirs
 add_subdirectory(dependencies)
