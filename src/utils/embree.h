@@ -2,7 +2,6 @@
 
 #include <stdio.h>
 #include <embree3/rtcore.h>
-#include "mat44.h"
 #include <string>
 
 // Embree utility functions

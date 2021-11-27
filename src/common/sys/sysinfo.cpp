@@ -426,7 +426,7 @@ namespace embree
 {
   std::string getExecutableFileName() {
     char filename[1024];
-    if (!GetModuleFileName(nullptr, (LPWSTR)filename, sizeof(filename)))
+    if (!GetModuleFileName(nullptr, (LPSTR)filename, sizeof(filename)))
       return std::string();
     return std::string(filename);
   }
@@ -438,7 +438,7 @@ namespace embree
 
     typedef WORD (WINAPI *GetActiveProcessorGroupCountFunc)();
     typedef DWORD (WINAPI *GetActiveProcessorCountFunc)(WORD);
-    HMODULE hlib = LoadLibrary((LPCWSTR)"Kernel32");
+    HMODULE hlib = LoadLibrary((LPCSTR)"Kernel32");
     GetActiveProcessorGroupCountFunc pGetActiveProcessorGroupCount = (GetActiveProcessorGroupCountFunc)GetProcAddress(hlib, "GetActiveProcessorGroupCount");
     GetActiveProcessorCountFunc      pGetActiveProcessorCount      = (GetActiveProcessorCountFunc)     GetProcAddress(hlib, "GetActiveProcessorCount");
 

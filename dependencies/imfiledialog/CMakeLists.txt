@@ -8,4 +8,3 @@ add_library(imfiledialog ${headers} ${srcs})
 
 # Link against imgui and stb as they are required
 target_link_libraries(imfiledialog imgui)
-target_link_libraries(imfiledialog stb)

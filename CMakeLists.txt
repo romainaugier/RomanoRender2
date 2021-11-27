@@ -56,15 +56,33 @@ else()
 	message(FATAL_ERROR "Your compiler is not supported yet, CMake will exit.")
 endif()
 
+# Embree
+find_package(embree 3 REQUIRED)
+include_directories(${EMBREE_INCLUDE_DIRS})
+
+# OpenImageIO
+find_package(OpenImageIO REQUIRED)
+include_directories(${OpenImageIO_INCLUDE_DIRS})
+
 # Tbb
 find_package(tbb REQUIRED)
 
-# Embree
-find_package(embree 3 REQUIRED)
 
 # OSL
-# find_package(osl REQUIRED)
+set(OSL_INCLUDE_DIRS dependencies/osl/include)
+include_directories(${OSL_INCLUDE_DIRS})
+
+# ImGui / ImNodes / ImFileDialog / GLFW
+set(IMGUI_INCLUDES dependencies/imgui
+				   dependencies/imnodes
+				   dependencies/imfiledialog
+				   dependencies/glfw/include)
+include_directories(${IMGUI_INCLUDES})
 
 # Subdirs
 add_subdirectory(dependencies)
+
+# Src
+include_directories(src)
 add_subdirectory(src)
+

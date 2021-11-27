@@ -6,6 +6,6 @@ file(GLOB_RECURSE headers *.h)
 
 add_library(scene ${headers} ${srcs})
 
-# Link against embree and maths library
+# Link against embree and common library
 target_link_libraries(scene embree)
-target_link_libraries(scene maths)
+target_link_libraries(scene common)

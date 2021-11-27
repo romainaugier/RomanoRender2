@@ -8,3 +8,4 @@ add_library(renderer ${headers} ${srcs})
 
 # Link with everything we need
 target_link_libraries(renderer shading)
+target_link_libraries(renderer TBB::tbb)

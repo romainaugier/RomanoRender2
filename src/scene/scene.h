@@ -1,6 +1,6 @@
 #pragma once
 
-#include "utils/mat44.h"
+#include "common/math/mat44.h"
 #include "scene/objloader.h"
 
 #include "embree3/rtcore.h"

@@ -5,6 +5,10 @@
 
 #include "platform.h"
 
+#ifndef __SSE4_2__
+#define __SSE4_2__
+#endif
+
 #if defined(__WIN32__)
 #include <intrin.h>
 #endif

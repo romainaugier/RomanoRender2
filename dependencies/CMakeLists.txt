@@ -7,10 +7,6 @@ include_directories(glfw/include)
 add_subdirectory(imgui)
 include_directories(imgui)
 
-# STB
-add_subdirectory(stb)
-include_directories(stb)
-
 # imnodes
 add_subdirectory(imnodes)
 include_directories(imnodes)
