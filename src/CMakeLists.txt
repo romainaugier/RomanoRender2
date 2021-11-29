@@ -14,6 +14,7 @@ add_executable(${PROJECT_NAME} main.cpp)
 
 # Link with the application lib, as it's already linked with everything else
 target_link_libraries(${PROJECT_NAME} app)
+target_link_libraries(${PROJECT_NAME} ispc_library)
 
 # Make sure we compile with CPP 17
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
