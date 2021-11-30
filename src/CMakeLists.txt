@@ -27,19 +27,32 @@ elseif(UNIX)
 endif()
 
 # Copy needed binaries (from OSL)
-set(OSL_BINS dependencies/osl/bin/oslcomp.dll 
-             dependencies/osl/bin/oslexec.dll 
-             dependencies/osl/bin/oslnoise.dll 
-             dependencies/osl/bin/oslquery.dll 
-             dependencies/osl/bin/osl.imageio.dll
-             dependencies/osl/bin/OpenColorIO.dll 
-             dependencies/osl/bin/oslc.exe)
+set(OSL_BINS ${CMAKE_SOURCE_DIR}/dependencies/osl/bin/oslcomp.dll 
+             ${CMAKE_SOURCE_DIR}/dependencies/osl/bin/oslexec.dll 
+             ${CMAKE_SOURCE_DIR}/dependencies/osl/bin/oslnoise.dll 
+             ${CMAKE_SOURCE_DIR}/dependencies/osl/bin/oslquery.dll 
+             ${CMAKE_SOURCE_DIR}/dependencies/osl/bin/osl.imageio.dll
+             ${CMAKE_SOURCE_DIR}/dependencies/osl/bin/OpenColorIO.dll 
+             ${CMAKE_SOURCE_DIR}/dependencies/osl/bin/oslc.exe)
 
 foreach(binary_file ${OSL_BINS})
     add_custom_command(
         TARGET ${PROJECT_NAME}
         POST_BUILD
         COMMAND ${CMAKE_COMMAND}
-        ARGS -E copy ${binary_file} ${CMAKE_BINARY_DIR}
+        ARGS -E copy ${binary_file} ${CMAKE_CURRENT_BINARY_DIR}/Release
     )
 endforeach(binary_file)
+
+# Copy needed binaries (from GLEW/GLFW)
+set(GL_DLLS ${CMAKE_SOURCE_DIR}/dependencies/glfw/lib-vc2019-x64/freeglut.dll
+			${CMAKE_SOURCE_DIR}/dependencies/glfw/lib-vc2019-x64/glew32.dll)
+
+foreach(binary_file ${GL_DLLS})
+    add_custom_command(
+        TARGET ${PROJECT_NAME}
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND}
+        ARGS -E copy ${binary_file} ${CMAKE_CURRENT_BINARY_DIR}/Release
+    )
+endforeach()
