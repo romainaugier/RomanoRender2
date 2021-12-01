@@ -84,7 +84,7 @@ include_directories(${OpenImageIO_INCLUDE_DIRS})
 find_package(tbb REQUIRED)
 
 # OSL
-# Pugixml required by tbb
+# Pugixml required by osl
 find_package(pugixml REQUIRED) 
 
 set(OSL_INCLUDE_DIRS dependencies/osl/include)

@@ -16,7 +16,7 @@ foreach(ispc_file ${ispc_files})
         COMMAND ${ISPC_EXECUTABLE} ${ispc_file} -h ${filename}.h -o ${filename}.o --target=avx2 -O3 
         )
 
-    list(APPEND ispc_outputs ${PROJECT_BINARY_DIR}/${filename}.o)
+    list(APPEND ispc_outputs ${filename}.o)
 endforeach(ispc_file)
 
 add_library(ispc_library ${ispc_outputs})
